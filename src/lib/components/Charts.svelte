@@ -40,13 +40,12 @@
 		}
 		return 0
 	})
-	$inspect(chartData, chartData.length)
 </script>
 
 <section>
 	{#if chartData.length <= 2}
 		<div class="single-point">
-			<p>You need at least two sessions to see your progress chart.</p>
+			<p>The chart is not shown until you have practiced for three days.</p>
 		</div>
 		<!-- 		    -->
 	{:else}
