@@ -17,8 +17,9 @@
 		If you have any questions or suggestions, you can <a
 			href="mailto:kiaora@adam.nz?subject=Breathe Less App Feedback"
 			>send me an email</a
-		>. All feedback is welcome.
+		>.
 	</p>
+	<p>All feedback is welcome.</p>
 </section>
 
 <style>

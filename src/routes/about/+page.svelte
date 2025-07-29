@@ -55,6 +55,11 @@
 				href="https://umami.is/">Umami</a
 			>.
 		</li>
+		<li>
+			The <a href="https://github.com/adamshand/breathe-less"
+				>source code is available</a
+			> under an open source license on Github.
+		</li>
 	</ul>
 
 	<p>
