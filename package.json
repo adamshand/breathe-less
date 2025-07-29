@@ -26,6 +26,7 @@
 		"@sveltejs/vite-plugin-svelte": "^5.1.1",
 		"@testing-library/jest-dom": "^6.6.4",
 		"@testing-library/svelte": "^5.2.8",
+		"@types/md5": "^2.3.5",
 		"@types/node": "^22.16.5",
 		"eslint": "^9.32.0",
 		"eslint-config-prettier": "^10.1.8",
@@ -33,6 +34,7 @@
 		"eslint-plugin-svelte": "^3.11.0",
 		"globals": "^16.3.0",
 		"jsdom": "^26.1.0",
+		"md5": "^2.3.0",
 		"open-props": "^1.7.16",
 		"pocketbase": "^0.25.2",
 		"prettier": "^3.6.2",
@@ -51,8 +53,6 @@
 		]
 	},
 	"dependencies": {
-		"@types/md5": "^2.3.5",
-		"md5": "^2.3.0",
 		"vite-node": "^3.2.4"
 	},
 	"packageManager": "pnpm@10.11.1+sha512.e519b9f7639869dc8d5c3c5dfef73b3f091094b0a006d7317353c72b124e80e1afd429732e28705ad6bfa1ee879c1fce46c128ccebd3192101f43dd67c667912"
