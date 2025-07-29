@@ -27,4 +27,4 @@ You can use it for free at: https://breathe.adam.nz
 
 <img width="256" src="https://github.com/user-attachments/assets/0d659256-883f-49ea-a469-d0347ffe2508" />
 
-<img width="256" src="https://github.com/user-attachments/assets/88f0aea3-dd08-4df4-a7de-4ea2b83637a0" />
+<img width="256" src="https://github.com/user-attachments/assets/3a908eb6-1b81-4183-a786-1095680121bd" />
