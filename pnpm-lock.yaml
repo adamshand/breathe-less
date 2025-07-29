@@ -8,12 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@types/md5':
-        specifier: ^2.3.5
-        version: 2.3.5
-      md5:
-        specifier: ^2.3.0
-        version: 2.3.0
       vite-node:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@22.16.5)(jiti@1.21.7)(yaml@2.8.0)
@@ -42,6 +36,9 @@ importers:
       '@testing-library/svelte':
         specifier: ^5.2.8
         version: 5.2.8(svelte@5.37.1)(vite@6.3.5(@types/node@22.16.5)(jiti@1.21.7)(yaml@2.8.0))(vitest@3.2.4(@types/node@22.16.5)(jiti@1.21.7)(jsdom@26.1.0)(yaml@2.8.0))
+      '@types/md5':
+        specifier: ^2.3.5
+        version: 2.3.5
       '@types/node':
         specifier: ^22.16.5
         version: 22.16.5
@@ -63,6 +60,9 @@ importers:
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0
+      md5:
+        specifier: ^2.3.0
+        version: 2.3.0
       open-props:
         specifier: ^1.7.16
         version: 1.7.16
