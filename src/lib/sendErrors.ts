@@ -1,7 +1,7 @@
 import type { NavigationEvent, RequestEvent } from '@sveltejs/kit'
 
 import { browser, dev } from '$app/environment'
-import { PUBLIC_DEBUG } from '$env/static/public'
+// import { PUBLIC_DEBUG } from '$env/static/public'
 
 export async function sendErrorToNtfy(
 	error: unknown,
@@ -38,7 +38,7 @@ export async function sendErrorToNtfy(
 
 	const body = `**${status}: ${message}**\n\n${stack}\n\n${location}`
 
-	if (PUBLIC_DEBUG) console.log({ ntfyUrl, renderMode, user })
+	// if (PUBLIC_DEBUG) console.log({ ntfyUrl, renderMode, user })
 
 	const headers = {
 		Markdown: 'yes',
