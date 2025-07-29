@@ -1,0 +1,13 @@
+.dockerignore
+.github
+.gitignore
+.svelte-kit
+Dockerfile.*
+README.md
+TODO.md
+captain-definition*
+deploy.tar
+docker-compose.yml
+node_modules
+tests
+tmp
