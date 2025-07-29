@@ -4,7 +4,6 @@
 	import { getOpenmojiUrl } from '$lib'
 
 	const staging = $derived(page.url.hostname.startsWith('dev.'))
-	const umamiId = $derived(page.data.site?.tracking ?? null)
 </script>
 
 <svelte:head>
@@ -15,16 +14,13 @@
 		<!-- yellow circle -->
 		<link href={getOpenmojiUrl('1F7E1')} rel="icon" />
 	{:else}
-		<!-- globe with meridians -->
-		<link href={getOpenmojiUrl('1f310')} rel="icon" />
+		<link href="/static/icon.svg" rel="icon" />
 
-		{#if umamiId}
-			<script
-				data-website-id={umamiId}
-				defer
-				src="https://umami.haume.nz/script.js"
-			>
-			</script>
-		{/if}
+		<script
+			data-website-id="d1135a06-f8ea-448b-973a-73ad41da74ce"
+			defer
+			src="https://umami.haume.nz/script.js"
+		>
+		</script>
 	{/if}
 </svelte:head>
