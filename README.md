@@ -1,6 +1,6 @@
 # 🌬️ Breathe Less
 
-Breathe Less is a timer and progress tracking Progressive Web App (PWA) for the Buteyko Method's Maximum Pause exercise. 
+Breathe Less is a timer and progress tracking app for the Buteyko Method's Maximum Pause exercise. 
 
 I built this app because I wanted a way to track my progress visually, and got nerd rage from constantly starting and stopping timers manually. I’ve been using it every day since June 2025.
 
