@@ -98,6 +98,8 @@
 		align-items: center;
 
 		margin-left: var(--size-1);
+		color: var(--brand);
+		font-size: var(--font-size-3);
 		text-align: left;
 
 		button {
@@ -132,6 +134,12 @@
 			border-bottom: 1px solid var(--surface-3);
 			text-align: center;
 		}
+		thead th {
+			background-color: var(--surface-2);
+			color: var(--text-1);
+			border-bottom: 1px solid var(--brand);
+		}
+
 		tbody > tr:hover {
 			background-color: var(--surface-3);
 		}
