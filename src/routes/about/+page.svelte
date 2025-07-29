@@ -4,11 +4,7 @@
 
 <article>
 	<a href="https://adam.nz">
-		<img
-			src="https://adam.nz/avatar.jpg"
-			alt="Adam and Audrey"
-			title="Dog is my copilot"
-		/>
+		<img src="/adam.jpg" alt="Adam and Audrey" title="Dog is my copilot" />
 	</a>
 
 	<h1>About</h1>
