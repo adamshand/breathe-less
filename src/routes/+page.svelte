@@ -42,8 +42,10 @@
 
 	$effect(() => {
 		if (session.finished) {
-			// TODO: is this a hack?
-			session.stage = 0
+			// TODO: also send total number of sessions and days
+			if (window.umami) window.umami.track('Session finish')
+
+			session.stage = 0 // TODO: is this a hack?
 			goto('/history')
 		} else {
 			loadTodaysSessions()
@@ -59,7 +61,8 @@
 	</hgroup>
 
 	{#if session.stage == 0}
-		<button onclick={handleBegin}>Begin</button>
+		<button data-umami-event="Session begin" onclick={handleBegin}>Begin</button
+		>
 	{:else}
 		{#key session.stage}
 			{#if isPulseStage}
