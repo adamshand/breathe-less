@@ -14,6 +14,10 @@
 		session.log = []
 	}
 
+	if (session.debugging) {
+		console.log('🪲 Debug mode: true')
+	}
+
 	function handleTimerDone(finalValue: number | undefined) {
 		// console.log('handleTimerDone()', { stage: session.stage }, { finalValue })
 
@@ -41,11 +45,11 @@
 	const isPulseStage = $derived(layout[session.stage]?.shortName === 'p')
 
 	$effect(() => {
-		if (session.finished) {
+		if (session.finished && session.sessionSaved) {
 			// TODO: also send total number of sessions and days
 			if (window.umami) window.umami.track('Session finish')
 
-			session.stage = 0 // TODO: is this a hack?
+			session.stage = 0
 			goto('/history')
 		} else {
 			loadTodaysSessions()

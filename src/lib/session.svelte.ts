@@ -1,17 +1,21 @@
 /* eslint-disable perfectionist/sort-classes */
-import { browser } from '$app/environment'
+import { browser, dev } from '$app/environment'
 import { page } from '$app/state'
 import { type BreathingSession, breathingStorage } from '$lib/breathingStorage'
 import { layout } from '$lib/timers'
 // import { layout } from '$lib/timersDebug'
 
 export class Session {
-	debugging = $derived(page.url.searchParams.has('debugging'))
+	debugging = $derived(page.url.searchParams.get('debug') !== 'false' &&
+		(page.url.searchParams.has('debug') ||
+			page.url.hostname.startsWith('dev.') ||
+			dev)
+	)
 	stage = $state(0)
 	finished = $derived(this.stage === layout.length - 1)
 	loggedShortNames = layout
 		.filter((stage) => stage.logged)
-		.map((stage) => stage.shortName) // eg. [ 'cp', 'mp 1', 'mp 2', 'mp 3', 'cp' ]
+		.map((stage) => stage.shortName) // eg. [ 'p', 'cp', 'mp 1', 'mp 2', 'mp 3', 'cp', 'p' ]
 
 	autoStart = $derived(layout[this.stage].autoStart)
 	duration = $derived(layout[this.stage].duration)

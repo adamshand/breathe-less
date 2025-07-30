@@ -8,11 +8,11 @@
 
 <svelte:head>
 	{#if dev}
-		<!-- red circle -->
-		<link href={getOpenmojiUrl('1F534')} rel="icon" />
+		<!-- red hexagon -->
+		<link href={getOpenmojiUrl('2B21-FE0F-200D-1F7E5')} rel="icon" />
 	{:else if staging}
-		<!-- yellow circle -->
-		<link href={getOpenmojiUrl('1F7E1')} rel="icon" />
+		<!-- yellow hexagon -->
+		<link href={getOpenmojiUrl('2B21-FE0F-200D-1F7E8')} rel="icon" />
 	{:else}
 		<link href="/static/icon.svg" rel="icon" />
 
