@@ -4,6 +4,7 @@ import { page } from '$app/state'
 import { type BreathingSession, breathingStorage } from '$lib/breathingStorage'
 import { layout } from '$lib/timers'
 // import { layout } from '$lib/timersDebug'
+import { SvelteDate } from 'svelte/reactivity'
 
 export class Session {
 	debugging = $derived(page.url.searchParams.get('debug') !== 'false' &&
@@ -12,16 +13,16 @@ export class Session {
 			dev)
 	)
 	stage = $state(0)
+	running = $state(false)
 	finished = $derived(this.stage === layout.length - 1)
-	loggedShortNames = layout
-		.filter((stage) => stage.logged)
-		.map((stage) => stage.shortName) // eg. [ 'p', 'cp', 'mp 1', 'mp 2', 'mp 3', 'cp', 'p' ]
 
 	autoStart = $derived(layout[this.stage].autoStart)
 	duration = $derived(layout[this.stage].duration)
 	instructions = $derived(layout[this.stage].instructions)
 	name = $derived(layout[this.stage].name)
-	running = $state(false)
+	loggedShortNames = layout
+		.filter((stage) => stage.logged)
+		.map((stage) => stage.shortName) // eg. [ 'p', 'cp', 'mp 1', 'mp 2', 'mp 3', 'cp', 'p' ]
 
 	// iOS requires sounds to be instigated by user action (button, swipe etc)
 	// Audio state is managed in session to persist across Timer component recreations
@@ -40,7 +41,7 @@ export class Session {
 	}
 
 	log: number[] = $state([])
-	date = new Date() // doesn't need to be reactive
+	date = new SvelteDate() // doesn't need to be reactive
 	todaysSessions: BreathingSession[] = $state([])
 
 	saveError = $state('')

@@ -1,23 +1,25 @@
 # Build with: docker build -t IMAGE_NAME .
 #   Run with: docker run -p 3000:3000 --rm -d -e PUBLIC_POCKETBASE_URL=https://pb.haume.nz --name IMAGE_NAME IMAGE_NAME
 
-FROM node:current-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /staging
 COPY . /staging/
 
 # hack to invalidate caprover build cache
 # ADD https://www.google.com /time.now
 
+ENV CI=true
+
 # https://github.com/pnpm/pnpm/issues/9029#issuecomment-2629817478
 # This is a very dirty hack to work around a pnpm bug
-ENV COREPACK_INTEGRITY_KEYS=0
+# ENV COREPACK_INTEGRITY_KEYS=0
 
 RUN corepack enable && \
   pnpm install --frozen-lockfile && \
   pnpm build && \
   pnpm prune --prod
 
-FROM node:current-alpine
+FROM node:22-alpine 
 WORKDIR /app
 COPY --from=builder /staging/package.json /staging/pnpm-lock.yaml  /app/
 COPY --from=builder /staging/node_modules /app/node_modules
