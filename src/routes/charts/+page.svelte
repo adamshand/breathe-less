@@ -4,7 +4,7 @@
 		breathingStorage,
 	} from '$lib/breathingStorage'
 	import { onMount } from 'svelte'
-	import { Dot, Line, Plot } from 'svelteplot'
+	import { Area, AreaY, Dot, Line, Plot } from 'svelteplot'
 
 	let allSessions: BreathingSession[] = $state([])
 	let loading = $state(true)
@@ -133,6 +133,57 @@
 				value: session.maxPause3,
 			}))
 			.sort((a, b) => a.date.getTime() - b.date.getTime())
+	})
+
+	const mp3BandData = $derived.by(() => {
+		if (allSessions.length === 0) return { lower: [], upper: [] }
+		const data = getDailyMaxPauseData(allSessions)
+
+		return {
+			lower: data.map((d) => ({ date: d.date, value: d.lowestMp3 })),
+			upper: data.map((d) => ({ date: d.date, value: d.highestMp3 })),
+		}
+	})
+
+	const cp1BandData = $derived.by(() => {
+		if (allSessions.length === 0) return { average: [], lower: [], upper: [] }
+
+		// We need to calculate highest CP1 per day, which isn't in the existing function
+		const validSessions = allSessions.filter(
+			(session) => session.controlPause1 > 0,
+		)
+		const dailyGroups = new Map<string, BreathingSession[]>()
+
+		validSessions.forEach((session) => {
+			const dateKey = new Date(session.date).toDateString()
+			if (!dailyGroups.has(dateKey)) {
+				dailyGroups.set(dateKey, [])
+			}
+			dailyGroups.get(dateKey)!.push(session)
+		})
+
+		const cp1Data = Array.from(dailyGroups.entries())
+			.map(([dateKey, daySessions]) => {
+				const firstCPs = daySessions.map((s) => s.controlPause1)
+				const lowestCP1 = Math.min(...firstCPs)
+				const highestCP1 = Math.max(...firstCPs)
+				const averageCP1 =
+					firstCPs.reduce((sum, cp) => sum + cp, 0) / firstCPs.length
+
+				return {
+					averageCP1,
+					date: new Date(dateKey),
+					highestCP1,
+					lowestCP1,
+				}
+			})
+			.sort((a, b) => a.date.getTime() - b.date.getTime())
+
+		return {
+			average: cp1Data.map((d) => ({ date: d.date, value: d.averageCP1 })),
+			lower: cp1Data.map((d) => ({ date: d.date, value: d.lowestCP1 })),
+			upper: cp1Data.map((d) => ({ date: d.date, value: d.highestCP1 })),
+		}
 	})
 </script>
 
@@ -362,6 +413,138 @@
 					</div>
 				</div>
 			</div>
+
+			<div class="chart-container">
+				<div class="chart-wrapper">
+					<Plot
+						height={400}
+						x={{ label: 'Date' }}
+						y={{ grid: true, label: 'Seconds' }}
+						subtitle="Daily MP3 and CP1 Range with Averages"
+					>
+						<!-- MP3 Band -->
+						<AreaY
+							data={mp3BandData.upper}
+							x="date"
+							y="value"
+							sort="Date"
+							fill="var(--orange-6)"
+							fillOpacity={0.3}
+							curve="monotone-x"
+						/>
+						<AreaY
+							data={mp3BandData.lower}
+							x="date"
+							y="value"
+							sort="Date"
+							fill="var(--surface-1)"
+							fillOpacity={1}
+							curve="monotone-x"
+						/>
+
+						<!-- CP1 Band -->
+						<AreaY
+							data={cp1BandData.upper}
+							x="date"
+							y="value"
+							sort="Date"
+							fill="var(--blue-6)"
+							fillOpacity={0.25}
+							curve="monotone-x"
+						/>
+						<AreaY
+							data={cp1BandData.lower}
+							x="date"
+							y="value"
+							sort="Date"
+							fill="var(--surface-1)"
+							fillOpacity={1}
+							curve="monotone-x"
+						/>
+
+						<!-- Average lines -->
+						<Line
+							data={maxPauseChartData}
+							x="date"
+							y="averageMp3"
+							sort="Date"
+							stroke="var(--orange-8)"
+							strokeWidth={3}
+							label="Average MP3"
+							curve="monotone-x"
+						/>
+						<Line
+							data={cp1BandData.average}
+							x="date"
+							y="value"
+							sort="Date"
+							stroke="var(--blue-8)"
+							strokeWidth={3}
+							label="Average CP1"
+							curve="monotone-x"
+						/>
+
+						<!-- Personal Best MP3 -->
+						<Dot
+							data={personalBestData}
+							x="date"
+							y="value"
+							sort="Date"
+							fill="var(--yellow-6)"
+							stroke="var(--yellow-9)"
+							strokeWidth={2}
+							r={4}
+							symbol="star"
+						/>
+					</Plot>
+				</div>
+
+				<div class="chart-info">
+					<div class="legend">
+						<div class="legend-item">
+							<div
+								class="legend-area"
+								style="background-color: var(--orange-6); opacity: 0.3;"
+							></div>
+							<span>Daily MP3 Range (High-Low)</span>
+						</div>
+						<div class="legend-item">
+							<div
+								class="legend-line solid thick"
+								style="background-color: var(--orange-8);"
+							></div>
+							<span>Average MP3 per Day</span>
+						</div>
+						<div class="legend-item">
+							<div
+								class="legend-area"
+								style="background-color: var(--blue-6); opacity: 0.25;"
+							></div>
+							<span>Daily CP1 Range (High-Low)</span>
+						</div>
+						<div class="legend-item">
+							<div
+								class="legend-line solid thick"
+								style="background-color: var(--blue-8);"
+							></div>
+							<span>Average CP1 per Day</span>
+						</div>
+						<div class="legend-item">
+							<div
+								class="legend-star"
+								style="color: var(--yellow-6); border-color: var(--yellow-9);"
+							>
+								★
+							</div>
+							<span>Personal Best MP3</span>
+						</div>
+					</div>
+					<p>
+						Bands show daily ranges between highest and lowest values for MP3
+						and first Control Pause (CP1).
+					</p>
+				</div>
+			</div>
 		{/if}
 	{/if}
 </article>
@@ -507,6 +690,27 @@
 		height: 8px;
 		border-radius: 50%;
 		box-sizing: border-box;
+	}
+
+	.legend-area {
+		width: 20px;
+		height: 12px;
+		border-radius: 2px;
+	}
+
+	.legend-line.thick {
+		height: 3px;
+	}
+
+	.legend-star {
+		font-size: 14px;
+		line-height: 1;
+		text-align: center;
+		width: 20px;
+		height: 20px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.chart-info p {

@@ -1,10 +1,10 @@
+/* eslint-disable svelte/prefer-svelte-reactivity */
 /* eslint-disable perfectionist/sort-classes */
 import { browser, dev } from '$app/environment'
 import { page } from '$app/state'
 import { type BreathingSession, breathingStorage } from '$lib/breathingStorage'
 import { layout } from '$lib/timers'
 // import { layout } from '$lib/timersDebug'
-import { SvelteDate } from 'svelte/reactivity'
 
 export class Session {
 	debugging = $derived(page.url.searchParams.get('debug') !== 'false' &&
@@ -41,7 +41,7 @@ export class Session {
 	}
 
 	log: number[] = $state([])
-	date = new SvelteDate() // doesn't need to be reactive
+	date = new Date() // doesn't need to be reactive
 	todaysSessions: BreathingSession[] = $state([])
 
 	saveError = $state('')

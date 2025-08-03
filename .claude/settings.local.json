@@ -12,7 +12,8 @@
       "Bash(ls:*)",
       "Bash(rg:*)",
       "WebFetch(domain:svelteplot.dev)",
-      "WebFetch(domain:localhost)"
+      "WebFetch(domain:localhost)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   }
