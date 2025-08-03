@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { type BreathingSession } from '$lib/breathingStorage'
 	import { SvelteMap } from 'svelte/reactivity'
-	import { AreaY, Line, Plot } from 'svelteplot'
+	import * as Plot from '@observablehq/plot'
+	import ObservablePlot from './ObservablePlot.svelte'
 
 	let { sessions }: { sessions: BreathingSession[] } = $props()
 
@@ -97,37 +98,97 @@
 		return getMp3PersonalBestData(sessions)
 	})
 
-	const mp3BandData = $derived.by(() => {
-		if (sessions.length === 0) return { lower: [], upper: [] }
-		const data = getDailyMaxPauseData(sessions)
-
-		return {
-			lower: data.map((d) => ({ date: d.date, value: d.lowestMp3 })),
-			upper: data.map((d) => ({ date: d.date, value: d.highestMp3 })),
-		}
+	const chartData = $derived.by(() => {
+		if (sessions.length === 0) return []
+		
+		const mp3Data = getDailyMaxPauseData(sessions)
+		const cp1Data = getDailyControlPauseData(sessions)
+		
+		// Combine data by date
+		const combined = mp3Data.map(mp3Day => {
+			const cp1Day = cp1Data.find(cp1 => cp1.date.getTime() === mp3Day.date.getTime())
+			return {
+				date: mp3Day.date,
+				mp3Lower: mp3Day.lowestMp3,
+				mp3Upper: mp3Day.highestMp3,
+				mp3Average: mp3Day.averageMp3,
+				cp1Lower: cp1Day?.lowestCP1 || 0,
+				cp1Upper: cp1Day?.highestCP1 || 0,
+				cp1Average: cp1Day?.averageCP1 || 0
+			}
+		})
+		
+		return combined
 	})
 
-	const cp1BandData = $derived.by(() => {
-		if (sessions.length === 0) return { average: [], lower: [], upper: [] }
-		const data = getDailyControlPauseData(sessions)
-
+	const plotOptions = $derived.by(() => {
+		if (chartData.length === 0) return {}
+		
 		return {
-			average: data.map((d) => ({ date: d.date, value: d.averageCP1 })),
-			lower: data.map((d) => ({ date: d.date, value: d.lowestCP1 })),
-			upper: data.map((d) => ({ date: d.date, value: d.highestCP1 })),
+			height: 350,
+			marginLeft: 60,
+			y: { grid: true, label: "↑ Seconds" },
+			x: { label: "Date →" },
+			marks: [
+				// MP3 Band
+				Plot.areaY(chartData, { 
+					x: "date", 
+					y1: "mp3Lower", 
+					y2: "mp3Upper", 
+					fill: "var(--orange-6)", 
+					fillOpacity: 0.3,
+					curve: "basis"
+				}),
+				// CP1 Band  
+				Plot.areaY(chartData, { 
+					x: "date", 
+					y1: "cp1Lower", 
+					y2: "cp1Upper", 
+					fill: "var(--blue-6)", 
+					fillOpacity: 0.25,
+					curve: "basis"
+				}),
+				// Average lines
+				Plot.line(chartData, { 
+					x: "date", 
+					y: "mp3Average", 
+					stroke: "var(--orange-8)", 
+					strokeWidth: 2,
+					curve: "basis"
+				}),
+				Plot.line(chartData, { 
+					x: "date", 
+					y: "cp1Average", 
+					stroke: "var(--blue-8)", 
+					strokeWidth: 2,
+					curve: "basis"
+				}),
+				// Personal bests
+				...(personalBestData.length > 0 ? [
+					Plot.dot(personalBestData, { 
+						x: "date", 
+						y: "value", 
+						fill: "var(--yellow-6)", 
+						stroke: "var(--yellow-9)",
+						strokeWidth: 2,
+						r: 4,
+						symbol: "star"
+					})
+				] : [])
+			]
 		}
 	})
 
 	const maxMp3Value = $derived.by(() => {
-		if (maxPauseChartData.length > 0) {
-			const values = maxPauseChartData.map((d) => d.averageMp3)
+		if (chartData.length > 0) {
+			const values = chartData.map((d) => d.mp3Average)
 			return Math.max(...values)
 		}
 		return 0
 	})
 
 	const allDataPoints = $derived.by(() => {
-		return Math.max(maxPauseChartData.length, cp1ChartData.length)
+		return chartData.length
 	})
 </script>
 
@@ -140,73 +201,7 @@
 	{:else}
 		<div class="chart-container">
 			<div class="chart-wrapper">
-				<!-- x={{ label: 'Date →' }} -->
-
-				<Plot
-					height={350}
-					x={{ label: 'Date →' }}
-					y={{ grid: true, label: '↑ Seconds' }}
-				>
-					<!-- MP3 Band -->
-					<AreaY
-						data={mp3BandData.upper}
-						x="date"
-						y="value"
-						sort="Date"
-						fill="var(--orange-6)"
-						fillOpacity={0.17}
-						curve="basis"
-					/>
-					<AreaY
-						data={mp3BandData.lower}
-						x="date"
-						y="value"
-						sort="Date"
-						fill="var(--surface-2)"
-						fillOpacity={1}
-						curve="basis"
-					/>
-
-					<!-- CP1 Band -->
-					<AreaY
-						data={cp1BandData.upper}
-						x="date"
-						y="value"
-						sort="Date"
-						fill="var(--blue-6)"
-						fillOpacity={0.25}
-						curve="basis"
-					/>
-					<AreaY
-						data={cp1BandData.lower}
-						x="date"
-						y="value"
-						sort="Date"
-						fill="var(--surface-2)"
-						fillOpacity={1}
-						curve="basis"
-					/>
-
-					<!-- Average lines -->
-					<Line
-						data={maxPauseChartData}
-						x="date"
-						y="averageMp3"
-						sort="Date"
-						stroke="var(--orange-8)"
-						strokeWidth={2}
-						curve="basis"
-					/>
-					<Line
-						data={cp1BandData.average}
-						x="date"
-						y="value"
-						sort="Date"
-						stroke="var(--blue-8)"
-						strokeWidth={2}
-						curve="basis"
-					/>
-				</Plot>
+				<ObservablePlot options={plotOptions} />
 			</div>
 
 			<div class="chart-info">
@@ -250,15 +245,9 @@
 					</div>
 				</div>
 				<p>
-					{sessions.length} sessions over {Math.max(
-						maxPauseChartData.length,
-						cp1ChartData.length,
-					)} days. Best MP3: {maxMp3Value}s.
+					{sessions.length} sessions over {chartData.length} days. Best MP3: {maxMp3Value}s.
 					{#if personalBestData.length > 0}
-						{personalBestData.length} personal best{personalBestData.length ===
-						1
-							? ''
-							: 's'}!
+						{personalBestData.length} personal best{personalBestData.length === 1 ? '' : 's'}!
 					{/if}
 				</p>
 			</div>

@@ -4,7 +4,8 @@
 		breathingStorage,
 	} from '$lib/breathingStorage'
 	import { onMount } from 'svelte'
-	import { Area, AreaY, Dot, Line, Plot } from 'svelteplot'
+	import * as Plot from '@observablehq/plot'
+	import ObservablePlot from '$lib/components/ObservablePlot.svelte'
 
 	let allSessions: BreathingSession[] = $state([])
 	let loading = $state(true)
@@ -135,23 +136,13 @@
 			.sort((a, b) => a.date.getTime() - b.date.getTime())
 	})
 
-	const mp3BandData = $derived.by(() => {
-		if (allSessions.length === 0) return { lower: [], upper: [] }
-		const data = getDailyMaxPauseData(allSessions)
-
-		return {
-			lower: data.map((d) => ({ date: d.date, value: d.lowestMp3 })),
-			upper: data.map((d) => ({ date: d.date, value: d.highestMp3 })),
-		}
-	})
-
-	const cp1BandData = $derived.by(() => {
-		if (allSessions.length === 0) return { average: [], lower: [], upper: [] }
-
-		// We need to calculate highest CP1 per day, which isn't in the existing function
-		const validSessions = allSessions.filter(
-			(session) => session.controlPause1 > 0,
-		)
+	const bandChartData = $derived.by(() => {
+		if (allSessions.length === 0) return []
+		
+		const mp3Data = getDailyMaxPauseData(allSessions)
+		
+		// Calculate CP1 data manually since we need different structure
+		const validSessions = allSessions.filter(session => session.controlPause1 > 0)
 		const dailyGroups = new Map<string, BreathingSession[]>()
 
 		validSessions.forEach((session) => {
@@ -167,22 +158,189 @@
 				const firstCPs = daySessions.map((s) => s.controlPause1)
 				const lowestCP1 = Math.min(...firstCPs)
 				const highestCP1 = Math.max(...firstCPs)
-				const averageCP1 =
-					firstCPs.reduce((sum, cp) => sum + cp, 0) / firstCPs.length
+				const averageCP1 = firstCPs.reduce((sum, cp) => sum + cp, 0) / firstCPs.length
 
 				return {
-					averageCP1,
 					date: new Date(dateKey),
-					highestCP1,
 					lowestCP1,
+					highestCP1,
+					averageCP1
 				}
 			})
 			.sort((a, b) => a.date.getTime() - b.date.getTime())
+		
+		// Combine data by date
+		const combined = mp3Data.map(mp3Day => {
+			const cp1Day = cp1Data.find(cp1 => cp1.date.getTime() === mp3Day.date.getTime())
+			return {
+				date: mp3Day.date,
+				mp3Lower: mp3Day.lowestMp3,
+				mp3Upper: mp3Day.highestMp3,
+				mp3Average: mp3Day.averageMp3,
+				cp1Lower: cp1Day?.lowestCP1 || 0,
+				cp1Upper: cp1Day?.highestCP1 || 0,
+				cp1Average: cp1Day?.averageCP1 || 0
+			}
+		})
+		
+		return combined
+	})
 
+	const cpChartOptions = $derived.by(() => {
+		if (chartData.length === 0) return {}
+		
 		return {
-			average: cp1Data.map((d) => ({ date: d.date, value: d.averageCP1 })),
-			lower: cp1Data.map((d) => ({ date: d.date, value: d.lowestCP1 })),
-			upper: cp1Data.map((d) => ({ date: d.date, value: d.highestCP1 })),
+			height: 400,
+			marginLeft: 60,
+			y: { grid: true, label: "Control Pause (seconds)" },
+			x: { label: "Date" },
+			subtitle: "Daily Control Pause Trends",
+			marks: [
+				Plot.line(chartData, { 
+					x: "date", 
+					y: "firstCP", 
+					stroke: "var(--brand)", 
+					strokeWidth: 2,
+					curve: "monotone-x"
+				}),
+				Plot.line(chartData, { 
+					x: "date", 
+					y: "averageCP", 
+					stroke: "var(--blue-6)", 
+					strokeWidth: 2,
+					strokeDasharray: "5,5",
+					curve: "monotone-x"
+				}),
+				Plot.line(chartData, { 
+					x: "date", 
+					y: "lowestFirstCP", 
+					stroke: "var(--red-6)", 
+					strokeWidth: 2,
+					strokeDasharray: "2,2",
+					curve: "cardinal"
+				}),
+				Plot.line(chartData, { 
+					x: "date", 
+					y: "highestSecondCP", 
+					stroke: "var(--green-6)", 
+					strokeWidth: 2,
+					strokeDasharray: "8,3",
+					curve: "cardinal"
+				})
+			]
+		}
+	})
+
+	const maxPauseChartOptions = $derived.by(() => {
+		if (maxPauseChartData.length === 0) return {}
+		
+		return {
+			height: 400,
+			marginLeft: 60,
+			y: { grid: true, label: "Max Pause (seconds)" },
+			x: { label: "Date" },
+			subtitle: "Daily Max Pause Trends",
+			marks: [
+				Plot.line(maxPauseChartData, { 
+					x: "date", 
+					y: "averageMp3", 
+					stroke: "var(--green-6)", 
+					strokeWidth: 2,
+					curve: "monotone-x"
+				}),
+				Plot.line(maxPauseChartData, { 
+					x: "date", 
+					y: "averageAllMp", 
+					stroke: "var(--purple-6)", 
+					strokeWidth: 2,
+					strokeDasharray: "5,5",
+					curve: "monotone-x"
+				}),
+				Plot.line(maxPauseChartData, { 
+					x: "date", 
+					y: "lowestMp3", 
+					stroke: "var(--red-6)", 
+					strokeWidth: 2,
+					strokeDasharray: "2,2",
+					curve: "cardinal"
+				}),
+				Plot.line(maxPauseChartData, { 
+					x: "date", 
+					y: "highestMp3", 
+					stroke: "var(--cyan-6)", 
+					strokeWidth: 2,
+					strokeDasharray: "10,5",
+					curve: "cardinal"
+				}),
+				...(personalBestData.length > 0 ? [
+					Plot.dot(personalBestData, { 
+						x: "date", 
+						y: "value", 
+						fill: "var(--yellow-6)", 
+						strokeWidth: 2,
+						r: 2
+					})
+				] : [])
+			]
+		}
+	})
+
+	const bandChartOptions = $derived.by(() => {
+		if (bandChartData.length === 0) return {}
+		
+		return {
+			height: 400,
+			marginLeft: 60,
+			y: { grid: true, label: "Seconds" },
+			x: { label: "Date" },
+			subtitle: "Daily MP3 and CP1 Range with Averages",
+			marks: [
+				// MP3 Band
+				Plot.areaY(bandChartData, { 
+					x: "date", 
+					y1: "mp3Lower", 
+					y2: "mp3Upper", 
+					fill: "var(--orange-6)", 
+					fillOpacity: 0.3,
+					curve: "monotone-x"
+				}),
+				// CP1 Band  
+				Plot.areaY(bandChartData, { 
+					x: "date", 
+					y1: "cp1Lower", 
+					y2: "cp1Upper", 
+					fill: "var(--blue-6)", 
+					fillOpacity: 0.25,
+					curve: "monotone-x"
+				}),
+				// Average lines
+				Plot.line(bandChartData, { 
+					x: "date", 
+					y: "mp3Average", 
+					stroke: "var(--orange-8)", 
+					strokeWidth: 3,
+					curve: "monotone-x"
+				}),
+				Plot.line(bandChartData, { 
+					x: "date", 
+					y: "cp1Average", 
+					stroke: "var(--blue-8)", 
+					strokeWidth: 3,
+					curve: "monotone-x"
+				}),
+				// Personal bests
+				...(personalBestData.length > 0 ? [
+					Plot.dot(personalBestData, { 
+						x: "date", 
+						y: "value", 
+						fill: "var(--yellow-6)", 
+						stroke: "var(--yellow-9)",
+						strokeWidth: 2,
+						r: 4,
+						symbol: "star"
+					})
+				] : [])
+			]
 		}
 	})
 </script>
@@ -212,57 +370,7 @@
 	{:else}
 		<div class="chart-container">
 			<div class="chart-wrapper">
-				<Plot
-					height={400}
-					x={{ label: 'Date' }}
-					y={{ grid: true, label: 'Control Pause (seconds)' }}
-					subtitle="Daily Control Pause Trends"
-				>
-					<Line
-						data={chartData}
-						x="date"
-						y="firstCP"
-						sort="Date"
-						stroke="var(--brand)"
-						strokeWidth={2}
-						label="First CP of Day"
-						curve="monotone-x"
-					/>
-					<Line
-						data={chartData}
-						x="date"
-						y="averageCP"
-						sort="Date"
-						stroke="var(--blue-6)"
-						strokeWidth={2}
-						strokeDasharray="5,5"
-						label="Daily Average First CP"
-						curve="monotone-x"
-					/>
-					<Line
-						data={chartData}
-						x="date"
-						y="lowestFirstCP"
-						sort="Date"
-						stroke="var(--red-6)"
-						strokeWidth={2}
-						strokeDasharray="2,2"
-						label="Lowest First CP per Day"
-						curve="cardinal"
-					/>
-					<Line
-						data={chartData}
-						x="date"
-						y="highestSecondCP"
-						sort="Date"
-						stroke="var(--green-6)"
-						strokeWidth={2}
-						strokeDasharray="8,3"
-						label="Highest Second CP per Day"
-						curve="cardinal"
-						text="CP"
-					/>
-				</Plot>
+				<ObservablePlot options={cpChartOptions} />
 			</div>
 
 			<div class="chart-info">
@@ -312,65 +420,7 @@
 		{:else}
 			<div class="chart-container">
 				<div class="chart-wrapper">
-					<Plot
-						height={400}
-						x={{ label: 'Date' }}
-						y={{ grid: true, label: 'Max Pause (seconds)' }}
-						subtitle="Daily Max Pause Trends"
-					>
-						<Line
-							data={maxPauseChartData}
-							x="date"
-							y="averageMp3"
-							sort="Date"
-							stroke="var(--green-6)"
-							strokeWidth={2}
-							label="Average MP3 per Day"
-							curve="monotone-x"
-						/>
-						<Line
-							data={maxPauseChartData}
-							x="date"
-							y="averageAllMp"
-							sort="Date"
-							stroke="var(--purple-6)"
-							strokeWidth={2}
-							strokeDasharray="5,5"
-							label="Average MP1,2,3 per Session"
-							curve="monotone-x"
-						/>
-						<Line
-							data={maxPauseChartData}
-							x="date"
-							y="lowestMp3"
-							sort="Date"
-							stroke="var(--red-6)"
-							strokeWidth={2}
-							strokeDasharray="2,2"
-							label="Lowest MP3 per Day"
-							curve="cardinal"
-						/>
-						<Line
-							data={maxPauseChartData}
-							x="date"
-							y="highestMp3"
-							sort="Date"
-							stroke="var(--cyan-6)"
-							strokeWidth={2}
-							strokeDasharray="10,5"
-							label="Highest MP3 per Day"
-							curve="cardinal"
-						/>
-						<Dot
-							data={personalBestData}
-							x="date"
-							y="value"
-							sort="Date"
-							fill="var(--yellow-6)"
-							strokeWidth={2}
-							r={2}
-						/>
-					</Plot>
+					<ObservablePlot options={maxPauseChartOptions} />
 				</div>
 
 				<div class="chart-info">
@@ -416,87 +466,7 @@
 
 			<div class="chart-container">
 				<div class="chart-wrapper">
-					<Plot
-						height={400}
-						x={{ label: 'Date' }}
-						y={{ grid: true, label: 'Seconds' }}
-						subtitle="Daily MP3 and CP1 Range with Averages"
-					>
-						<!-- MP3 Band -->
-						<AreaY
-							data={mp3BandData.upper}
-							x="date"
-							y="value"
-							sort="Date"
-							fill="var(--orange-6)"
-							fillOpacity={0.3}
-							curve="monotone-x"
-						/>
-						<AreaY
-							data={mp3BandData.lower}
-							x="date"
-							y="value"
-							sort="Date"
-							fill="var(--surface-1)"
-							fillOpacity={1}
-							curve="monotone-x"
-						/>
-
-						<!-- CP1 Band -->
-						<AreaY
-							data={cp1BandData.upper}
-							x="date"
-							y="value"
-							sort="Date"
-							fill="var(--blue-6)"
-							fillOpacity={0.25}
-							curve="monotone-x"
-						/>
-						<AreaY
-							data={cp1BandData.lower}
-							x="date"
-							y="value"
-							sort="Date"
-							fill="var(--surface-1)"
-							fillOpacity={1}
-							curve="monotone-x"
-						/>
-
-						<!-- Average lines -->
-						<Line
-							data={maxPauseChartData}
-							x="date"
-							y="averageMp3"
-							sort="Date"
-							stroke="var(--orange-8)"
-							strokeWidth={3}
-							label="Average MP3"
-							curve="monotone-x"
-						/>
-						<Line
-							data={cp1BandData.average}
-							x="date"
-							y="value"
-							sort="Date"
-							stroke="var(--blue-8)"
-							strokeWidth={3}
-							label="Average CP1"
-							curve="monotone-x"
-						/>
-
-						<!-- Personal Best MP3 -->
-						<Dot
-							data={personalBestData}
-							x="date"
-							y="value"
-							sort="Date"
-							fill="var(--yellow-6)"
-							stroke="var(--yellow-9)"
-							strokeWidth={2}
-							r={4}
-							symbol="star"
-						/>
-					</Plot>
+					<ObservablePlot options={bandChartOptions} />
 				</div>
 
 				<div class="chart-info">
