@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { type BreathingSession } from '$lib/breathingStorage'
-	import { SvelteMap } from 'svelte/reactivity'
 	import * as Plot from '@observablehq/plot'
+	import { SvelteMap } from 'svelte/reactivity'
+
 	import ObservablePlot from './ObservablePlot.svelte'
 
 	let { sessions }: { sessions: BreathingSession[] } = $props()
@@ -30,7 +31,7 @@
 				const highestMp3 = Math.max(...mp3Values)
 
 				return {
-					averageMp3: Math.round(dailyAverageMp3 * 10) / 10,
+					averageMp3: dailyAverageMp3,
 					date: new Date(dateKey),
 					highestMp3: highestMp3,
 					lowestMp3: lowestMp3,
@@ -62,7 +63,7 @@
 					firstCPs.reduce((sum, cp) => sum + cp, 0) / firstCPs.length
 
 				return {
-					averageCP1: Math.round(averageCP1 * 10) / 10,
+					averageCP1: averageCP1,
 					date: new Date(dateKey),
 					highestCP1,
 					lowestCP1,
@@ -83,16 +84,6 @@
 			.sort((a, b) => a.date.getTime() - b.date.getTime())
 	}
 
-	const maxPauseChartData = $derived.by(() => {
-		if (sessions.length === 0) return []
-		return getDailyMaxPauseData(sessions)
-	})
-
-	const cp1ChartData = $derived.by(() => {
-		if (sessions.length === 0) return []
-		return getDailyControlPauseData(sessions)
-	})
-
 	const personalBestData = $derived.by(() => {
 		if (sessions.length === 0) return []
 		return getMp3PersonalBestData(sessions)
@@ -100,82 +91,72 @@
 
 	const chartData = $derived.by(() => {
 		if (sessions.length === 0) return []
-		
+
 		const mp3Data = getDailyMaxPauseData(sessions)
 		const cp1Data = getDailyControlPauseData(sessions)
-		
+
 		// Combine data by date
-		const combined = mp3Data.map(mp3Day => {
-			const cp1Day = cp1Data.find(cp1 => cp1.date.getTime() === mp3Day.date.getTime())
+		const combined = mp3Data.map((mp3Day) => {
+			const cp1Day = cp1Data.find(
+				(cp1) => cp1.date.getTime() === mp3Day.date.getTime(),
+			)
 			return {
-				date: mp3Day.date,
-				mp3Lower: mp3Day.lowestMp3,
-				mp3Upper: mp3Day.highestMp3,
-				mp3Average: mp3Day.averageMp3,
+				cp1Average: cp1Day?.averageCP1 || 0,
 				cp1Lower: cp1Day?.lowestCP1 || 0,
 				cp1Upper: cp1Day?.highestCP1 || 0,
-				cp1Average: cp1Day?.averageCP1 || 0
+				date: mp3Day.date,
+				mp3Average: mp3Day.averageMp3,
+				mp3Lower: mp3Day.lowestMp3,
+				mp3Upper: mp3Day.highestMp3,
 			}
 		})
-		
+
 		return combined
 	})
 
 	const plotOptions = $derived.by(() => {
 		if (chartData.length === 0) return {}
-		
+
 		return {
-			height: 350,
-			marginLeft: 60,
-			y: { grid: true, label: "↑ Seconds" },
-			x: { label: "Date →" },
+			height: 450,
+			marginLeft: 20,
 			marks: [
 				// MP3 Band
-				Plot.areaY(chartData, { 
-					x: "date", 
-					y1: "mp3Lower", 
-					y2: "mp3Upper", 
-					fill: "var(--orange-6)", 
-					fillOpacity: 0.3,
-					curve: "basis"
+				Plot.areaY(chartData, {
+					curve: 'basis',
+					fill: 'var(--brand)',
+					fillOpacity: 0.15,
+					x: 'date',
+					y1: 'mp3Lower',
+					y2: 'mp3Upper',
 				}),
-				// CP1 Band  
-				Plot.areaY(chartData, { 
-					x: "date", 
-					y1: "cp1Lower", 
-					y2: "cp1Upper", 
-					fill: "var(--blue-6)", 
-					fillOpacity: 0.25,
-					curve: "basis"
-				}),
-				// Average lines
-				Plot.line(chartData, { 
-					x: "date", 
-					y: "mp3Average", 
-					stroke: "var(--orange-8)", 
+				Plot.line(chartData, {
+					curve: 'basis',
+					stroke: 'var(--brand)',
+					strokeOpacity: 0.6,
 					strokeWidth: 2,
-					curve: "basis"
+					x: 'date',
+					y: 'mp3Average',
 				}),
-				Plot.line(chartData, { 
-					x: "date", 
-					y: "cp1Average", 
-					stroke: "var(--blue-8)", 
+				Plot.areaY(chartData, {
+					curve: 'basis',
+					fill: 'var(--blue-7)',
+					fillOpacity: 0.2,
+					x: 'date',
+					y1: 'cp1Lower',
+					y2: 'cp1Upper',
+				}),
+				Plot.line(chartData, {
+					curve: 'basis',
+					stroke: 'var(--blue-7)',
+					strokeOpacity: 0.6,
 					strokeWidth: 2,
-					curve: "basis"
+					x: 'date',
+					y: 'cp1Average',
 				}),
-				// Personal bests
-				...(personalBestData.length > 0 ? [
-					Plot.dot(personalBestData, { 
-						x: "date", 
-						y: "value", 
-						fill: "var(--yellow-6)", 
-						stroke: "var(--yellow-9)",
-						strokeWidth: 2,
-						r: 4,
-						symbol: "star"
-					})
-				] : [])
-			]
+			],
+			x: { label: 'Date →' },
+			y: { grid: true, label: '↑ Seconds' },
 		}
 	})
 
@@ -204,53 +185,14 @@
 				<ObservablePlot options={plotOptions} />
 			</div>
 
-			<div class="chart-info">
-				<div class="legend">
-					<div class="legend-item">
-						<div
-							class="legend-area"
-							style="background-color: var(--orange-6); opacity: 0.3;"
-						></div>
-						<span>Daily MP3 Range</span>
-					</div>
-					<div class="legend-item">
-						<div
-							class="legend-line solid thick"
-							style="background-color: var(--orange-8);"
-						></div>
-						<span>Average MP3</span>
-					</div>
-					<div class="legend-item">
-						<div
-							class="legend-area"
-							style="background-color: var(--blue-6); opacity: 0.25;"
-						></div>
-						<span>Daily CP1 Range</span>
-					</div>
-					<div class="legend-item">
-						<div
-							class="legend-line solid thick"
-							style="background-color: var(--blue-8);"
-						></div>
-						<span>Average CP1</span>
-					</div>
-					<div class="legend-item">
-						<div
-							class="legend-star"
-							style="color: var(--yellow-6); border-color: var(--yellow-9);"
-						>
-							★
-						</div>
-						<span>Personal Best</span>
-					</div>
-				</div>
-				<p>
-					{sessions.length} sessions over {chartData.length} days. Best MP3: {maxMp3Value}s.
-					{#if personalBestData.length > 0}
-						{personalBestData.length} personal best{personalBestData.length === 1 ? '' : 's'}!
-					{/if}
-				</p>
-			</div>
+			<p>
+				{sessions.length} sessions over {chartData.length} days. Best MP3: {maxMp3Value}s.
+				{#if personalBestData.length > 0}
+					{personalBestData.length} personal best{personalBestData.length === 1
+						? ''
+						: 's'}!
+				{/if}
+			</p>
 		</div>
 	{/if}
 </section>

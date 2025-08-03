@@ -1,13 +1,21 @@
 <script lang="ts">
 	import * as Plot from '@observablehq/plot'
 
-	let { options }: { options: any } = $props()
-	let div: HTMLElement | undefined = $state()
+	const { options } = $props<{ options: Plot.PlotOptions }>()
 
-	$effect(() => {
-		div?.firstChild?.remove() // remove old chart, if any
-		div?.append(Plot.plot(options)) // add the new chart
-	})
+	export function plot(node: HTMLElement, options: Plot.PlotOptions) {
+		const chart = Plot.plot(options)
+		node.replaceChildren(chart)
+
+		return {
+			destroy() {
+				node.replaceChildren()
+			},
+			update(newOptions: Plot.PlotOptions) {
+				node.replaceChildren(Plot.plot(newOptions))
+			},
+		}
+	}
 </script>
 
-<div bind:this={div} role="img"></div>
+<div use:plot={options} role="img"></div>
