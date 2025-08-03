@@ -69,18 +69,6 @@
 			.sort((a, b) => a.date.getTime() - b.date.getTime())
 	}
 
-	function getMp3PersonalBestData(sessions: BreathingSession[]) {
-		return sessions
-			.filter(
-				(session) => session.personalBest.maxPause3 && session.maxPause3 > 0,
-			)
-			.map((session) => ({
-				date: new Date(session.date),
-				value: session.maxPause3,
-			}))
-			.sort((a, b) => a.date.getTime() - b.date.getTime())
-	}
-
 	const chartData = $derived.by(() => {
 		if (sessions.length === 0) return []
 
@@ -106,51 +94,62 @@
 		return combined
 	})
 
-	const plotOptions = $derived({
-		color: { legend: true },
-		height: 500,
-		marks: [
-			Plot.areaY(chartData, {
-				curve: 'basis',
-				fill: 'var(--brand)',
-				fillOpacity: 0.15,
-				x: 'date',
-				y1: 'mp3Lower',
-				y2: 'mp3Upper',
-			}),
-			Plot.line(chartData, {
-				curve: 'basis',
-				stroke: 'var(--brand)',
-				strokeOpacity: 0.6,
-				strokeWidth: 2,
-				x: 'date',
-				y: 'mp3Average',
-			}),
-			Plot.areaY(chartData, {
-				curve: 'basis',
-				fill: 'var(--blue-7)',
-				fillOpacity: 0.2,
-				x: 'date',
-				y1: 'cp1Lower',
-				y2: 'cp1Upper',
-			}),
-			Plot.line(chartData, {
-				curve: 'basis',
-				stroke: 'var(--blue-7)',
-				strokeOpacity: 0.6,
-				strokeWidth: 2,
-				x: 'date',
-				y: 'cp1Average',
-			}),
-		],
-		// x: { label: 'Date →' },
-		y: {
-			grid: true,
-			// label: '↑ Seconds',
-		},
-	})
+	const bandData = $derived([
+		...chartData.map((d) => ({
+			...d,
+			series: 'CP1 Avg',
+			y1: d.cp1Lower,
+			y2: d.cp1Upper,
+		})),
+		...chartData.map((d) => ({
+			...d,
+			series: 'MP3 Avg',
+			y1: d.mp3Lower,
+			y2: d.mp3Upper,
+		})),
+	])
+
+	const lineData = $derived([
+		...chartData.map((d) => ({
+			...d,
+			series: 'CP1 Avg',
+			value: d.cp1Average,
+		})),
+		...chartData.map((d) => ({
+			...d,
+			series: 'MP3 Avg',
+			value: d.mp3Average,
+		})),
+	])
 
 	const allDataPoints = $derived(chartData.length)
+
+	const plotOptions = $derived({
+		color: {
+			legend: true,
+			range: ['var(--blue-4)', 'var(--brand)'],
+		},
+		height: 500,
+		marks: [
+			Plot.areaY(bandData, {
+				curve: 'basis',
+				fill: 'series',
+				fillOpacity: 0.15,
+				x: 'date',
+				y1: 'y1',
+				y2: 'y2',
+			}),
+			Plot.line(lineData, {
+				curve: 'basis',
+				stroke: 'series',
+				strokeOpacity: 0.6,
+				x: 'date',
+				y: 'value',
+			}),
+		],
+		x: { label: 'Date →' },
+		y: { grid: true, label: '↑ Seconds' },
+	})
 </script>
 
 <section>
