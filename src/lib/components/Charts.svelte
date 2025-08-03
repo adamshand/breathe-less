@@ -21,12 +21,9 @@
 
 		return Array.from(dailyGroups.entries())
 			.map(([dateKey, daySessions]) => {
-				// Calculate daily average of all mp3 values
 				const mp3Values = daySessions.map((s) => s.maxPause3)
 				const dailyAverageMp3 =
 					mp3Values.reduce((sum, val) => sum + val, 0) / mp3Values.length
-
-				// Find lowest and highest mp3 for the day
 				const lowestMp3 = Math.min(...mp3Values)
 				const highestMp3 = Math.max(...mp3Values)
 
@@ -84,11 +81,6 @@
 			.sort((a, b) => a.date.getTime() - b.date.getTime())
 	}
 
-	const personalBestData = $derived.by(() => {
-		if (sessions.length === 0) return []
-		return getMp3PersonalBestData(sessions)
-	})
-
 	const chartData = $derived.by(() => {
 		if (sessions.length === 0) return []
 
@@ -114,86 +106,63 @@
 		return combined
 	})
 
-	const plotOptions = $derived.by(() => {
-		if (chartData.length === 0) return {}
-
-		return {
-			height: 450,
-			marginLeft: 20,
-			marks: [
-				// MP3 Band
-				Plot.areaY(chartData, {
-					curve: 'basis',
-					fill: 'var(--brand)',
-					fillOpacity: 0.15,
-					x: 'date',
-					y1: 'mp3Lower',
-					y2: 'mp3Upper',
-				}),
-				Plot.line(chartData, {
-					curve: 'basis',
-					stroke: 'var(--brand)',
-					strokeOpacity: 0.6,
-					strokeWidth: 2,
-					x: 'date',
-					y: 'mp3Average',
-				}),
-				Plot.areaY(chartData, {
-					curve: 'basis',
-					fill: 'var(--blue-7)',
-					fillOpacity: 0.2,
-					x: 'date',
-					y1: 'cp1Lower',
-					y2: 'cp1Upper',
-				}),
-				Plot.line(chartData, {
-					curve: 'basis',
-					stroke: 'var(--blue-7)',
-					strokeOpacity: 0.6,
-					strokeWidth: 2,
-					x: 'date',
-					y: 'cp1Average',
-				}),
-			],
-			x: { label: 'Date →' },
-			y: { grid: true, label: '↑ Seconds' },
-		}
+	const plotOptions = $derived({
+		color: { legend: true },
+		height: 500,
+		marks: [
+			Plot.areaY(chartData, {
+				curve: 'basis',
+				fill: 'var(--brand)',
+				fillOpacity: 0.15,
+				x: 'date',
+				y1: 'mp3Lower',
+				y2: 'mp3Upper',
+			}),
+			Plot.line(chartData, {
+				curve: 'basis',
+				stroke: 'var(--brand)',
+				strokeOpacity: 0.6,
+				strokeWidth: 2,
+				x: 'date',
+				y: 'mp3Average',
+			}),
+			Plot.areaY(chartData, {
+				curve: 'basis',
+				fill: 'var(--blue-7)',
+				fillOpacity: 0.2,
+				x: 'date',
+				y1: 'cp1Lower',
+				y2: 'cp1Upper',
+			}),
+			Plot.line(chartData, {
+				curve: 'basis',
+				stroke: 'var(--blue-7)',
+				strokeOpacity: 0.6,
+				strokeWidth: 2,
+				x: 'date',
+				y: 'cp1Average',
+			}),
+		],
+		// x: { label: 'Date →' },
+		y: {
+			grid: true,
+			// label: '↑ Seconds',
+		},
 	})
 
-	const maxMp3Value = $derived.by(() => {
-		if (chartData.length > 0) {
-			const values = chartData.map((d) => d.mp3Average)
-			return Math.max(...values)
-		}
-		return 0
-	})
-
-	const allDataPoints = $derived.by(() => {
-		return chartData.length
-	})
+	const allDataPoints = $derived(chartData.length)
 </script>
 
 <section>
 	{#if allDataPoints <= 2}
-		<div class="single-point">
-			<p>The chart is not shown until you have practiced for three days.</p>
-		</div>
-		<!-- 		    -->
+		<p>The chart is not shown until you have practiced for three days.</p>
 	{:else}
-		<div class="chart-container">
-			<div class="chart-wrapper">
-				<ObservablePlot options={plotOptions} />
-			</div>
-
-			<p>
-				{sessions.length} sessions over {chartData.length} days. Best MP3: {maxMp3Value}s.
-				{#if personalBestData.length > 0}
-					{personalBestData.length} personal best{personalBestData.length === 1
-						? ''
-						: 's'}!
-				{/if}
-			</p>
-		</div>
+		<ObservablePlot options={plotOptions} />
+		<p>
+			{sessions.length} sessions over {allDataPoints} days ({Math.round(
+				(sessions.length / allDataPoints) * 10,
+			) / 10} times a day)
+		</p>
 	{/if}
 </section>
 
@@ -201,96 +170,14 @@
 	section {
 		width: 100%;
 		margin-block: var(--size-3);
-		padding: var(--size-4);
+		padding: var(--size-3) var(--size-2);
 		background: var(--surface-2);
 		border-radius: var(--radius-3);
-		border: 1px solid var(--surface-3);
+		border: 1px solid var(--surface-4);
 	}
-
-	.single-point {
+	p {
+		margin-bottom: var(--size-3);
+		font-size: var(--font-size-2);
 		text-align: center;
-		padding: var(--size-6);
-		color: var(--text-2);
-
-		p {
-			margin-bottom: var(--size-3);
-			font-size: var(--font-size-3);
-		}
-	}
-
-	.chart-container {
-		text-align: center;
-	}
-
-	.chart-wrapper {
-		width: 100%;
-		overflow-x: auto;
-		min-height: 370px; /* Accommodate chart height + padding */
-	}
-
-	.chart-wrapper :global(svg) {
-		max-width: 100%;
-		height: auto;
-	}
-
-	.chart-info {
-		text-align: center;
-		margin-top: var(--size-3);
-	}
-
-	.legend {
-		display: flex;
-		justify-content: center;
-		gap: var(--size-3);
-		margin-bottom: var(--size-2);
-		flex-wrap: wrap;
-	}
-
-	.legend-item {
-		display: flex;
-		align-items: center;
-		gap: var(--size-1);
-		font-size: var(--font-size-1);
-	}
-
-	.legend-area {
-		width: 16px;
-		height: 10px;
-		border-radius: 2px;
-	}
-
-	.legend-line {
-		width: 16px;
-		height: 2px;
-		border-radius: 1px;
-	}
-
-	.legend-line.thick {
-		height: 3px;
-	}
-
-	.legend-star {
-		font-size: 12px;
-		line-height: 1;
-		text-align: center;
-		width: 16px;
-		height: 16px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.chart-info p {
-		font-size: var(--font-size-1);
-		color: var(--text-2);
-		margin: 0;
-	}
-
-	@media (max-width: 400px) {
-		.legend {
-			flex-direction: column;
-			align-items: center;
-			gap: var(--size-2);
-		}
 	}
 </style>
