@@ -142,7 +142,11 @@
 			<div class="chart-wrapper">
 				<!-- x={{ label: 'Date →' }} -->
 
-				<Plot height={350} y={{ grid: true, label: '↑ Seconds' }}>
+				<Plot
+					height={350}
+					x={{ label: 'Date →' }}
+					y={{ grid: true, label: '↑ Seconds' }}
+				>
 					<!-- MP3 Band -->
 					<AreaY
 						data={mp3BandData.upper}
