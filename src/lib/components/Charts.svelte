@@ -150,7 +150,7 @@
 						y="value"
 						sort="Date"
 						fill="var(--orange-6)"
-						fillOpacity={0.3}
+						fillOpacity={0.17}
 						curve="basis"
 					/>
 					<AreaY
@@ -158,7 +158,7 @@
 						x="date"
 						y="value"
 						sort="Date"
-						fill="var(--surface-1)"
+						fill="var(--surface-2)"
 						fillOpacity={1}
 						curve="basis"
 					/>
@@ -178,7 +178,7 @@
 						x="date"
 						y="value"
 						sort="Date"
-						fill="var(--surface-1)"
+						fill="var(--surface-2)"
 						fillOpacity={1}
 						curve="basis"
 					/>
