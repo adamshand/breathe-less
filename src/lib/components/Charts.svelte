@@ -97,13 +97,13 @@
 	const bandData = $derived([
 		...chartData.map((d) => ({
 			...d,
-			series: 'CP1 Avg',
+			series: 'Average CP1',
 			y1: d.cp1Lower,
 			y2: d.cp1Upper,
 		})),
 		...chartData.map((d) => ({
 			...d,
-			series: 'MP3 Avg',
+			series: 'Average MP3',
 			y1: d.mp3Lower,
 			y2: d.mp3Upper,
 		})),
@@ -112,12 +112,12 @@
 	const lineData = $derived([
 		...chartData.map((d) => ({
 			...d,
-			series: 'CP1 Avg',
+			series: 'Average CP1',
 			value: d.cp1Average,
 		})),
 		...chartData.map((d) => ({
 			...d,
-			series: 'MP3 Avg',
+			series: 'Average MP3',
 			value: d.mp3Average,
 		})),
 	])
