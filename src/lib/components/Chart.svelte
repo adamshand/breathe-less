@@ -58,7 +58,7 @@
 <p>
 	{totalSessions} sessions over {totalDays} days ({Math.round(
 		(totalSessions / totalDays) * 10,
-	) / 10} times a day)
+	) / 10} per day)
 </p>
 <section>
 	{#if totalDays < minDays}
@@ -67,14 +67,15 @@
 		<Plot
 			color={{ legend: true }}
 			height={350}
-			x={{ label: 'Date →' }}
+			x={{ axis: false, label: 'Date →' }}
 			y={{ grid: true, label: '↑ Seconds' }}
 		>
+			<!-- <Frame stroke="var(--text-2)" strokeWidth={1} /> -->
 			<AreaY
 				data={plotData}
 				curve="basis"
 				fill="series"
-				fillOpacity={0.2}
+				fillOpacity={0.4}
 				sort="date"
 				x="date"
 				y1="low"
@@ -85,7 +86,7 @@
 				data={plotData}
 				sort={(p: { series: string }) => /Control/.test(p.series)}
 				stroke="series"
-				strokeWidth={1.5}
+				strokeWidth={2}
 				x="date"
 				y="avg"
 			/>

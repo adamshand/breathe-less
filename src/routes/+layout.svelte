@@ -128,7 +128,6 @@
 		max-width: 480px;
 		height: 100dvh;
 		height: 100svh;
-		max-height: 950px;
 		color: var(--text-1);
 	}
 
