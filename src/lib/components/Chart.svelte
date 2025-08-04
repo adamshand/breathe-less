@@ -51,46 +51,51 @@
 		return result
 	}
 
+	const minDays = 3
 	const plotData = groupAndSummarize(sessions)
+	const totalSessions = $derived(sessions.length)
+	const totalDays = $derived(
+		new Set(plotData.map((d) => d.date.toISOString().slice(0, 10))).size,
+	)
 </script>
 
-<!-- <p>
-	{sessions.length} sessions over {allDataPoints} days ({Math.round(
-		(sessions.length / allDataPoints) * 10,
+<p>
+	{totalSessions} sessions over {totalDays} days ({Math.round(
+		(totalSessions / totalDays) * 10,
 	) / 10} times a day)
-</p> -->
+</p>
 <section>
-	<!-- {#if allDataPoints <= 2}
-		<p>The chart is not shown until you have practiced for three days.</p>
-	{:else} -->
-	<Plot
-		color={{ legend: true }}
-		height={350}
-		x={{ label: 'Date →' }}
-		y={{ grid: true, label: '↑ Seconds' }}
-	>
-		<AreaY
-			data={plotData}
-			curve="basis"
-			fill="series"
-			fillOpacity={0.5}
-			sort="date"
-			x="date"
-			y1="low"
-			y2="high"
-		/>
-		<Line
-			curve="basis"
-			data={plotData}
-			sort={(p: { series: string }) => /Control/.test(p.series)}
-			stroke="white"
-			strokeWidth={1.5}
-			x="date"
-			y="avg"
-			z="series"
-		/>
-	</Plot>
-	<!-- {/if} -->
+	{#if totalDays < minDays}
+		<p>The chart is not shown until you have practiced for {minDays} days.</p>
+	{:else}
+		<Plot
+			color={{ legend: true }}
+			height={350}
+			width={480}
+			x={{ label: 'Date →' }}
+			y={{ grid: true, label: '↑ Seconds' }}
+		>
+			<AreaY
+				data={plotData}
+				curve="basis"
+				fill="series"
+				fillOpacity={0.2}
+				sort="date"
+				x="date"
+				y1="low"
+				y2="high"
+			/>
+			<Line
+				curve="basis"
+				data={plotData}
+				sort={(p: { series: string }) => /Control/.test(p.series)}
+				stroke="series"
+				strokeWidth={1.5}
+				x="date"
+				y="avg"
+			/>
+		</Plot>
+	{/if}
 </section>
 
 <style>
