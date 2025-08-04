@@ -3,7 +3,7 @@
 		type BreathingSession,
 		breathingStorage,
 	} from '$lib/breathingStorage'
-	import Charts from '$lib/components/Charts.svelte'
+	import Chart from '$lib/components/Chart.svelte'
 	import History from '$lib/components/History.svelte'
 	import { onMount } from 'svelte'
 
@@ -72,7 +72,7 @@
 		</div>
 		<!--  -->
 	{:else}
-		<Charts sessions={allSessions} />
+		<Chart sessions={allSessions} />
 
 		<div class="day">
 			{#each Array.from(sessionsByDate.entries()) as [dateString, sessions] (dateString)}
