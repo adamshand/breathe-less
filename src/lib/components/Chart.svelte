@@ -95,14 +95,15 @@
 
 <style>
 	section {
+		container-type: inline-size;
+		overflow-x: auto;
+
 		width: 100%;
 		margin-block: var(--size-3);
 		padding: var(--size-3) var(--size-2);
 		background: var(--surface-2);
 		border-radius: var(--radius-3);
 		border: 1px solid var(--surface-4);
-		overflow-x: auto;
-		container-type: inline-size;
 	}
 	p {
 		margin-bottom: var(--size-3);
