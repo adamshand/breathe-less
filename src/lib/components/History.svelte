@@ -55,9 +55,9 @@
 	<table id="copyme">
 		<thead>
 			<tr>
-				<th>Time</th> <th>Pulse</th> <th>CP</th> <th>MP1</th> <th>MP2</th>
+				<th>Time</th> <th>P1</th> <th>CP1</th> <th>MP1</th> <th>MP2</th>
 				<th>MP3</th>
-				<th>CP</th> <th>Pulse</th>
+				<th>CP2</th> <th>P2</th>
 			</tr>
 		</thead>
 		<tbody>
