@@ -17,21 +17,22 @@
 			dailyGroups.get(dateKey)!.push(session)
 		})
 
-		return Array.from(dailyGroups.entries()).map(([dateKey, daySessions]) => {
-			const mp3Values = daySessions.map((s) => s.maxPause3)
-			const dailyAverageMp3 =
-				mp3Values.reduce((sum, val) => sum + val, 0) / mp3Values.length
-			const lowestMp3 = Math.min(...mp3Values)
-			const highestMp3 = Math.max(...mp3Values)
+		return Array.from(dailyGroups.entries())
+			.map(([dateKey, daySessions]) => {
+				const mp3Values = daySessions.map((s) => s.maxPause3)
+				const dailyAverageMp3 =
+					mp3Values.reduce((sum, val) => sum + val, 0) / mp3Values.length
+				const lowestMp3 = Math.min(...mp3Values)
+				const highestMp3 = Math.max(...mp3Values)
 
-			return {
-				averageMp3: dailyAverageMp3,
-				date: new Date(dateKey),
-				highestMp3: highestMp3,
-				lowestMp3: lowestMp3,
-			}
-		})
-		// .sort((a, b) => a.date.getTime() - b.date.getTime())
+				return {
+					averageMp3: dailyAverageMp3,
+					date: new Date(dateKey),
+					highestMp3: highestMp3,
+					lowestMp3: lowestMp3,
+				}
+			})
+			.sort((a, b) => a.date.getTime() - b.date.getTime())
 	}
 
 	const maxPauseChartData = $derived.by(() => {
@@ -69,21 +70,22 @@
 			dailyGroups.get(dateKey)!.push(session)
 		})
 
-		return Array.from(dailyGroups.entries()).map(([dateKey, daySessions]) => {
-			const firstCPs = daySessions.map((s) => s.controlPause1)
-			const lowestCP1 = Math.min(...firstCPs)
-			const highestCP1 = Math.max(...firstCPs)
-			const averageCP1 =
-				firstCPs.reduce((sum, cp) => sum + cp, 0) / firstCPs.length
+		return Array.from(dailyGroups.entries())
+			.map(([dateKey, daySessions]) => {
+				const firstCPs = daySessions.map((s) => s.controlPause1)
+				const lowestCP1 = Math.min(...firstCPs)
+				const highestCP1 = Math.max(...firstCPs)
+				const averageCP1 =
+					firstCPs.reduce((sum, cp) => sum + cp, 0) / firstCPs.length
 
-			return {
-				averageCP1: averageCP1,
-				date: new Date(dateKey),
-				highestCP1,
-				lowestCP1,
-			}
-		})
-		// .sort((a, b) => a.date.getTime() - b.date.getTime())
+				return {
+					averageCP1: averageCP1,
+					date: new Date(dateKey),
+					highestCP1,
+					lowestCP1,
+				}
+			})
+			.sort((a, b) => a.date.getTime() - b.date.getTime())
 	}
 
 	const chartData = $derived.by(() => {
@@ -129,17 +131,18 @@
 	const lineData = $derived([
 		...chartData.map((d) => ({
 			...d,
-			series: 'CP1 Average',
+			series: 'CP1',
 			value: d.cp1Average,
 		})),
 		...chartData.map((d) => ({
 			...d,
-			series: 'MP3 Average',
+			series: 'MP3',
 			value: d.mp3Average,
 		})),
 	])
 
 	const allDataPoints = $derived(chartData.length)
+	// $inspect({ allDataPoints, bandData, chartData, lineData })
 </script>
 
 <section>
@@ -156,7 +159,7 @@
 				data={bandData}
 				curve="basis"
 				fill="series"
-				fillOpacity={0.5}
+				fillOpacity={0.3}
 				sort="Date"
 				x="date"
 				y1="y1"
@@ -165,7 +168,6 @@
 			<!-- <Line
 				curve="basis"
 				data={lineData}
-				sort="Date"
 				stroke="series"
 				strokeWidth={2}
 				x="date"
