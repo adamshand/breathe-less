@@ -9,8 +9,8 @@
 
 		for (const session of data) {
 			const dateObj = new Date(session.date)
-
 			const yyyymmdd = dateObj.toISOString().slice(0, 10)
+
 			if (!grouped[yyyymmdd]) {
 				grouped[yyyymmdd] = []
 			}
@@ -20,12 +20,8 @@
 		const result = []
 
 		for (const [date, sessions] of Object.entries(grouped)) {
-			const cp1s = sessions
-				.map((s) => s.controlPause1)
-				.filter((n) => typeof n === 'number')
-			const mp3s = sessions
-				.map((s) => s.maxPause3)
-				.filter((n) => typeof n === 'number')
+			const cp1s = sessions.map((s) => s.controlPause1)
+			const mp3s = sessions.map((s) => s.maxPause3)
 
 			if (cp1s.length) {
 				result.push({
@@ -71,7 +67,6 @@
 		<Plot
 			color={{ legend: true }}
 			height={350}
-			width={480}
 			x={{ label: 'Date →' }}
 			y={{ grid: true, label: '↑ Seconds' }}
 		>
@@ -106,11 +101,12 @@
 		background: var(--surface-2);
 		border-radius: var(--radius-3);
 		border: 1px solid var(--surface-4);
+		overflow-x: auto;
+		container-type: inline-size;
 	}
 	p {
 		margin-bottom: var(--size-3);
 		font-size: var(--font-size-1);
 		text-align: center;
-		outline: 1px solid silver;
 	}
 </style>
