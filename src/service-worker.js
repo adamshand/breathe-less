@@ -16,7 +16,8 @@ const ASSETS = [
 ]
 
 self.addEventListener('install', (event) => {
-	// Create a new cache and add all files to it
+	self.skipWaiting()
+
 	async function addFilesToCache() {
 		const cache = await caches.open(CACHE)
 		await cache.addAll(ASSETS)
@@ -26,6 +27,8 @@ self.addEventListener('install', (event) => {
 })
 
 self.addEventListener('activate', (event) => {
+	self.clients.claim()
+
 	// Remove previous cached data from disk
 	async function deleteOldCaches() {
 		for (const key of await caches.keys()) {
