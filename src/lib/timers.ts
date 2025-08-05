@@ -24,7 +24,7 @@ const pulse = {
 	duration: 15,
 	instructions: `<p>Find your pulse in your neck or wrist.  Count the number of heartbeats during the timer.</p>`,
 	logged: true,
-	name: 'Record Pulse',
+	name: 'Measure Pulse',
 	shortName: 'p',
 }
 
@@ -44,11 +44,22 @@ const vsb = {
 	duration: 180,
 	instructions: `
 	<p>Use shallow belly breathing to maintain gentle air hunger.</p>
-	<p>Adjust the depth of breath (do not slow down the rate of breathing) 
-	   to	maintain air hunger while making sure that your belly stays relaxed.</p>`,
+	<p>Adjust the depth of breath to maintain air hunger while making 
+	sure that your belly stays relaxed.</p>`,
 	logged: false,
 	name: 'Very Shallow Breathing',
 	shortName: 'vsb',
+}
+
+const suppress = {
+	autoStart: true,
+	duration: 10,
+	instructions: `
+	<p>Strongly suppress the urge to take a deep breath.</p>
+	<p>Instead use very rapid and shallow breaths.</p>`,
+	logged: false,
+	name: 'Suppress',
+	shortName: 'suppress',
 }
 
 const recover = {
@@ -84,6 +95,7 @@ export const layout = [
 		name: 'Maximum Pause',
 		shortName: 'mp 1',
 	},
+	suppress,
 	vsb,
 	recover,
 
@@ -95,6 +107,7 @@ export const layout = [
 		name: 'Maximum Pause',
 		shortName: 'mp 2',
 	},
+	{ ...suppress, duration: 20 },
 	vsb,
 	recover,
 
@@ -105,6 +118,7 @@ export const layout = [
 		name: 'Maximum Pause',
 		shortName: 'mp 3',
 	},
+	{ ...suppress, duration: 30 },
 	vsb,
 	{ ...recover, duration: 60 },
 

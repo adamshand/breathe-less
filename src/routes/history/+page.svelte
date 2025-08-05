@@ -6,6 +6,7 @@
 	import Chart from '$lib/components/Chart.svelte'
 	import History from '$lib/components/History.svelte'
 	import { onMount } from 'svelte'
+	import { SvelteMap } from 'svelte/reactivity'
 
 	let sessionsByDate: Map<string, BreathingSession[]> = $state(new Map())
 	let allSessions: BreathingSession[] = $state([])
@@ -18,7 +19,7 @@
 			allSessions = sessions
 
 			// Group sessions by date
-			const grouped = new Map<string, BreathingSession[]>()
+			const grouped = new SvelteMap<string, BreathingSession[]>()
 
 			sessions.forEach((session) => {
 				const dateKey = new Date(session.date).toDateString()
@@ -85,7 +86,6 @@
 <style>
 	article {
 		padding: var(--size-4);
-		max-width: 800px;
 		margin: 0 auto;
 	}
 

@@ -101,7 +101,7 @@
 
 		width: 100%;
 		margin-block: var(--size-3);
-		padding: var(--size-3) var(--size-2);
+		padding: var(--size-1) var(--size-3);
 		background: var(--surface-2);
 		border-radius: var(--radius-3);
 		border: 1px solid var(--surface-4);
