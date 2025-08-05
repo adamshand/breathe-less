@@ -24,7 +24,7 @@ const pulse = {
 	duration: 15,
 	instructions: `<p>Find your pulse in your neck or wrist.  Count the number of heartbeats during the timer.</p>`,
 	logged: true,
-	name: 'Measure Pulse',
+	name: 'Pulse',
 	shortName: 'p',
 }
 
