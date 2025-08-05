@@ -3,8 +3,10 @@ const intro = {
 	duration: 0,
 	instructions: `
   <p>This exercise should be performed four times a day. Before breakfast, lunch, dinner and bed.</p> 
-  <p>Do not practice for two hours after a meal.</p> 
-  <p>Learn more about this exercise on the free five-day beginners course at <a href="https://www.learnbuteykoonline.net/" target="_blank">Learn Buteyko Online</a>.</p>`,
+  <p>Do not practice for two hours after a meal or more than four times a day.</p> 
+  <p>Learn more about this exercise by <a href="/instructions">reading the instructions</a>, 
+	or by taking a free five-day beginners course from <a href="https://www.learnbuteykoonline.net/" 
+	target="_blank">Learn Buteyko Online</a>.</p>`,
 	logged: false,
 	name: 'Buteyko Maximum Pause Exercise', // Introduction
 	shortName: 'start',
@@ -55,8 +57,7 @@ const suppress = {
 	autoStart: true,
 	duration: 10,
 	instructions: `
-	<p>Strongly suppress the urge to take a deep breath.</p>
-	<p>Instead use very rapid and shallow breaths.</p>`,
+	<p>Strongly suppress the urge to take deep breaths by using very rapid and shallow breaths.</p>`,
 	logged: false,
 	name: 'Suppress',
 	shortName: 'suppress',

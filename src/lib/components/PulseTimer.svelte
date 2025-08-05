@@ -9,7 +9,7 @@
 
 	let count = $state(15)
 	let intervalId: null | ReturnType<typeof setInterval> = $state(null)
-	let countdownComplete = $state(false)
+	let countingDown = $state(true)
 	let pulseInput = $state('')
 	let pulseInputElement = $state<HTMLInputElement>()
 
@@ -38,7 +38,7 @@
 			clearInterval(intervalId)
 			intervalId = null
 		}
-		countdownComplete = true
+		countingDown = false
 		// Auto-focus the input after a brief delay
 		setTimeout(() => {
 			pulseInputElement?.focus()
@@ -77,7 +77,7 @@
 </script>
 
 <section>
-	{#if !countdownComplete}
+	{#if countingDown}
 		<div id="timer">
 			<time aria-live="polite">{count}</time>
 			<p>
@@ -92,16 +92,16 @@
 		{:else}
 			<button onclick={startCountdown}>Start Timer</button>
 		{/if}
+		<!-- 
+		
+		-->
 	{:else}
 		<div id="pulse-input">
-			<h3>Enter Pulse Count</h3>
-			<p>How many heartbeats did you count?</p>
 			<input
 				bind:this={pulseInputElement}
 				bind:value={pulseInput}
 				type="number"
-				min="1"
-				placeholder="Enter count"
+				placeholder="Number of heartbeats"
 				onkeydown={handleKeydown}
 			/>
 			<button
@@ -121,8 +121,6 @@
 	}
 
 	#timer {
-		margin: 2rem auto;
-		padding-block: 1rem;
 		background-color: var(--surface-2);
 		color: var(--orange-);
 		border-radius: 1rem;
@@ -139,34 +137,20 @@
 	}
 
 	#pulse-input {
-		margin: 2rem auto;
-		padding: 2rem;
+		height: 100%;
 		background-color: var(--surface-2);
 		border-radius: 1rem;
 		text-align: center;
 
-		h3 {
-			margin-top: 0;
-			color: var(--brand);
-			font-size: var(--font-size-4);
-		}
-
-		p {
-			margin-bottom: 1.5rem;
-			font-size: var(--font-size-2);
-			color: var(--text-2);
-		}
-
 		input {
 			width: 100%;
-			max-width: 200px;
-			margin-bottom: 1rem;
-			padding: 0.75rem;
-			font-size: var(--font-size-3);
-			text-align: center;
+			margin-bottom: 2rem;
+			padding: var(--size-4);
 			border: 2px solid var(--brand);
 			border-radius: var(--radius-2);
-			background-color: var(--surface-1);
+			background-color: var(--surface-2);
+			font-size: var(--font-size-3);
+			text-align: center;
 		}
 
 		input:focus {
@@ -178,10 +162,10 @@
 
 	button {
 		width: 100%;
-		background-color: var(--brand);
-		color: var(--surface-1);
 		border-radius: var(--radius-5);
 		box-shadow: none;
+		background-color: var(--brand);
+		color: var(--surface-1);
 		font-family: var(--font-humanist);
 		font-size: var(--font-size-5);
 		font-weight: var(--font-weight-5);
