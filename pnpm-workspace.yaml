@@ -2,3 +2,5 @@ onlyBuiltDependencies:
   - '@sveltejs/kit'
   - esbuild
   - svelte-preprocess
+minimumReleaseAge: 1440
+
