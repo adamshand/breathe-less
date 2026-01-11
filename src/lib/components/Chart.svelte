@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { type BreathingSession } from '$lib/breathingStorage'
+	import { SvelteDate } from 'svelte/reactivity'
 	import { AreaY, Line, Plot } from 'svelteplot'
 
 	let { sessions }: { sessions: BreathingSession[] } = $props()
@@ -73,12 +74,13 @@
 		}[],
 		days: number,
 	) {
-		const cutoff = new Date()
+		const cutoff = new SvelteDate()
 		cutoff.setDate(cutoff.getDate() - days)
 		return data.filter((d) => d.date >= cutoff)
 	}
 
 	const minDays = 3
+	// svelte-ignore state_referenced_locally
 	const allPlotData = groupAndSummarize(sessions)
 	const plotData = $derived(
 		showAll ? allPlotData : filterToLastNDays(allPlotData, DEFAULT_DAYS),

@@ -31,3 +31,4 @@ e2e
 tmp
 src/routes/(sites)/passagetobalance.com/components/Contact copy.svelte
 src/lib/style copy.css
+coverage

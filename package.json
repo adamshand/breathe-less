@@ -13,8 +13,8 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"test:unit": "vitest",
-		"test": "npm run test:unit -- --run && npm run test:e2e",
-		"test:e2e": "playwright test",
+		"test:unit:coverage": "vitest run --coverage",
+		"test": "vitest run",
 		"deployprod": "caprover deploy -h https://captain.ruru.haume.nz -a haume-nz -b main -p $( awk -F= '/^CAPROVER_PASS=/ {print $2}' ~/.env )"
 	},
 	"devDependencies": {
@@ -28,6 +28,7 @@
 		"@testing-library/svelte": "^5.3.1",
 		"@types/md5": "^2.3.6",
 		"@types/node": "^25.0.6",
+		"@vitest/coverage-v8": "^4.0.16",
 		"eslint": "^9.39.2",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-perfectionist": "^5.3.1",
