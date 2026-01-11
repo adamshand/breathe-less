@@ -80,6 +80,7 @@
 
 <style>
 	article {
+		width: 100%;
 		padding: var(--size-4);
 		margin: 0 auto;
 	}
