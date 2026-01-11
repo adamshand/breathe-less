@@ -234,13 +234,17 @@ export function parseCSVRow(
 	row: string[],
 	rowIndex: number,
 ): { error: null | string; session: BreathingSession | null } {
-	// Detect format based on column count:
+	// Detect format based on column count and content:
 	// 11 columns = legacy v1 (Date, Time, ... Personal Best)
-	// 10 columns = legacy v2 (DateTime, ... Personal Best, no Exercise Type)
-	// Current format = EXPECTED_CSV_HEADERS.length columns
+	// 10 columns = legacy v2 OR current format (both have 10 columns)
+	// Disambiguate by checking if column 2 is a valid exercise type
 	const isLegacyV1 = row.length === 11
-	const isLegacyV2 = row.length === 10
-	const isCurrentFormat = row.length === EXPECTED_CSV_HEADERS.length
+	const validExerciseTypes = ['classical', 'diminished', 'mcp']
+	const col1IsExerciseType =
+		row.length >= 2 && validExerciseTypes.includes(row[1].trim().toLowerCase())
+	const isLegacyV2 = row.length === 10 && !col1IsExerciseType
+	const isCurrentFormat =
+		row.length === EXPECTED_CSV_HEADERS.length && col1IsExerciseType
 
 	if (!isLegacyV1 && !isLegacyV2 && !isCurrentFormat) {
 		return {

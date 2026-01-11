@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { BreathingSession } from '$lib/breathingStorage'
+	import type { BreathingSession, ExerciseType } from '$lib/breathingStorage'
 
 	import { CheckIcon, ClipboardCopyIcon } from '@lucide/svelte'
 
@@ -16,6 +16,17 @@
 
 	function displayValue(value: number): string {
 		return value === 0 ? '-' : String(value)
+	}
+
+	function getExerciseBadge(type: ExerciseType): string {
+		switch (type) {
+			case 'classical':
+				return 'C'
+			case 'diminished':
+				return 'D'
+			case 'mcp':
+				return 'M'
+		}
 	}
 
 	async function copyHTML() {
@@ -64,6 +75,7 @@
 		<table id="copyme">
 			<thead>
 				<tr>
+					<th></th>
 					<th>Time</th> <th>P1</th> <th>CP1</th> <th>MP1</th> <th>MP2</th>
 					<th>MP3</th>
 					<th>CP2</th> <th>P2</th>
@@ -71,7 +83,12 @@
 			</thead>
 			<tbody>
 				{#each sortedSessions as session (session.id)}
-					<tr class:mcp-row={session.exerciseType === 'mcp'}>
+					<tr>
+						<td
+							><span title={session.exerciseType} class="exercise-badge"
+								>{getExerciseBadge(session.exerciseType)}</span
+							></td
+						>
 						<td>
 							{new Date(session.date).toLocaleTimeString('en-NZ', {
 								hour: '2-digit',
@@ -150,9 +167,20 @@
 		tbody > tr:hover {
 			background-color: var(--surface-3);
 		}
+	}
 
-		tbody > tr.mcp-row {
-			color: var(--teal-6);
-		}
+	.exercise-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.5rem;
+		height: 1.5rem;
+		padding-top: 3px;
+		padding-right: 0px;
+		border: 1.5px solid var(--brand);
+		border-radius: var(--radius-round);
+		color: var(--brand);
+		font-size: var(--font-size-0);
+		font-weight: var(--font-weight-9);
 	}
 </style>

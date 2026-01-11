@@ -3,23 +3,25 @@
 	import type { BreathingSession } from '$lib/breathingStorage'
 
 	import { breathingStorage } from '$lib/breathingStorage'
+	import StreakWidget from '$lib/components/StreakWidget.svelte'
 	import { classicalExercise } from '$lib/exercises/classical'
 	import { diminishedExercise } from '$lib/exercises/diminished'
 	import { mcpExercise } from '$lib/exercises/mcp'
 	import { onMount } from 'svelte'
 
 	let todaysMCP: BreathingSession | null = $state(null)
+	let allSessions: BreathingSession[] = $state([])
 
 	onMount(async () => {
-		todaysMCP = await breathingStorage.getTodaysMCP()
+		const [mcp, sessions] = await Promise.all([
+			breathingStorage.getTodaysMCP(),
+			breathingStorage.getAllSessions(),
+		])
+		todaysMCP = mcp
+		allSessions = sessions
 	})
 
 	const exercises = [
-		{
-			...classicalExercise,
-			available: true,
-			href: '/classical',
-		},
 		{
 			...mcpExercise,
 			available: true,
@@ -30,6 +32,11 @@
 			available: true,
 			href: '/diminished',
 		},
+		{
+			...classicalExercise,
+			available: true,
+			href: '/classical',
+		},
 	]
 </script>
 
@@ -37,15 +44,12 @@
 	<title>Breathe Less | Buteyko Breathing Exercises</title>
 	<meta
 		name="description"
-		content="Practice Buteyko breathing exercises to improve your control pause and overall breathing."
+		content="Practice the Buteyko Method to improve your health."
 	/>
 </svelte:head>
 
 <article>
-	<hgroup>
-		<h1>Breathe Less</h1>
-		<p>Choose an exercise to begin</p>
-	</hgroup>
+	<StreakWidget sessions={allSessions} />
 
 	<div class="exercise-grid">
 		{#each exercises as exercise (exercise.type)}
@@ -80,28 +84,11 @@
 		margin: 0 auto;
 	}
 
-	hgroup {
-		text-align: center;
-		margin-bottom: var(--size-6);
-
-		h1 {
-			font-size: var(--font-size-7);
-			font-weight: var(--font-weight-6);
-			color: var(--brand);
-			margin: 0;
-		}
-
-		p {
-			font-size: var(--font-size-3);
-			color: var(--text-2);
-			margin: var(--size-2) 0 0 0;
-		}
-	}
-
 	.exercise-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 		gap: var(--size-4);
+		margin-top: var(--size-4);
 	}
 
 	.exercise-card {
@@ -175,16 +162,10 @@
 		width: var(--size-9);
 		height: var(--size-9);
 		border-radius: var(--radius-round);
-		border: 2px dashed var(--surface-4);
-		color: var(--text-2);
+		border: 2px solid var(--brand);
+		color: var(--brand);
 		font-size: var(--font-size-2);
 		font-weight: var(--font-weight-5);
 		flex-shrink: 0;
-	}
-
-	.mcp-badge.done {
-		border: 2px solid var(--teal-6);
-		background: var(--teal-6);
-		color: white;
 	}
 </style>
