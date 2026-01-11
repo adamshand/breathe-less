@@ -4,7 +4,7 @@
 </script>
 
 {#if log.length !== 5}
-	<section>
+	<section style="--stage-count: {session.loggedShortNames.length}">
 		{#each { length: session.loggedShortNames.length }, i}
 			{@const complete = log[i] >= 0}
 
@@ -21,7 +21,7 @@
 <style>
 	section {
 		display: grid;
-		grid-template-columns: repeat(7, 1fr);
+		grid-template-columns: repeat(var(--stage-count), 1fr);
 
 		/* TODO: tweak botom to look right on phone */
 		margin: var(--size-1) 2px;

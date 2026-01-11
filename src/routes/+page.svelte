@@ -4,6 +4,7 @@
 
 	import { breathingStorage } from '$lib/breathingStorage'
 	import { classicalExercise } from '$lib/exercises/classical'
+	import { diminishedExercise } from '$lib/exercises/diminished'
 	import { mcpExercise } from '$lib/exercises/mcp'
 	import { onMount } from 'svelte'
 
@@ -25,13 +26,9 @@
 			href: '/mcp',
 		},
 		{
-			available: false,
-			description:
-				'A gentler variation focusing on reduced breathing without maximum pauses.',
+			...diminishedExercise,
+			available: true,
 			href: '/diminished',
-			name: 'Diminished Breathing',
-			shortName: 'Diminished',
-			type: 'diminished',
 		},
 	]
 </script>
