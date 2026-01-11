@@ -3,4 +3,3 @@ onlyBuiltDependencies:
   - esbuild
   - svelte-preprocess
 minimumReleaseAge: 1440
-

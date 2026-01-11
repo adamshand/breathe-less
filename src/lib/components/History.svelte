@@ -74,11 +74,7 @@
 					<td>{session.controlPause1}</td>
 					<td>{session.maxPause1}</td>
 					<td>{session.maxPause2}</td>
-					<td>
-						<div class:bestMp3={session.personalBest?.maxPause3}>
-							{session.maxPause3}
-						</div>
-					</td>
+					<td>{session.maxPause3}</td>
 					<td>{session.controlPause2}</td>
 					<td>{session.pulse2}</td>
 				</tr>
@@ -143,11 +139,5 @@
 		tbody > tr:hover {
 			background-color: var(--surface-3);
 		}
-	}
-	.bestMp3 {
-		border-radius: var(--radius-5);
-		background-color: var(--brand);
-		color: var(--surface-1);
-		font-weight: var(--font-weight-5);
 	}
 </style>

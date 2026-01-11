@@ -8,11 +8,7 @@
 	"theme_color": "#f97316",
 	"orientation": "portrait-primary",
 	"scope": "/",
-	"categories": [
-		"health",
-		"wellness",
-		"lifestyle"
-	],
+	"categories": ["health", "wellness", "lifestyle"],
 	"lang": "en",
 	"icons": [
 		{

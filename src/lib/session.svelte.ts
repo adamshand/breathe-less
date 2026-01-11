@@ -1,28 +1,40 @@
 /* eslint-disable svelte/prefer-svelte-reactivity */
 /* eslint-disable perfectionist/sort-classes */
+import type { BreathingSession } from '$lib/breathingStorage'
+import type { ExerciseConfig, Stage } from '$lib/exercises/types'
+
 import { browser, dev } from '$app/environment'
 import { page } from '$app/state'
-import { type BreathingSession, breathingStorage } from '$lib/breathingStorage'
-import { layout } from '$lib/timers'
-// import { layout } from '$lib/timersDebug'
+import { breathingStorage } from '$lib/breathingStorage'
+import { classicalExercise } from '$lib/exercises/classical'
 
 export class Session {
-	debugging = $derived(page.url.searchParams.get('debug') !== 'false' &&
-		(page.url.searchParams.has('debug') ||
-			page.url.hostname.startsWith('dev.') ||
-			dev)
+	private _config: ExerciseConfig = $state(classicalExercise)
+
+	debugging = $derived(
+		page.url.searchParams.get('debug') !== 'false' &&
+			(page.url.searchParams.has('debug') ||
+				page.url.hostname.startsWith('dev.') ||
+				dev),
 	)
 	stage = $state(0)
 	running = $state(false)
-	finished = $derived(this.stage === layout.length - 1)
 
-	autoStart = $derived(layout[this.stage].autoStart)
-	duration = $derived(layout[this.stage].duration)
-	instructions = $derived(layout[this.stage].instructions)
-	name = $derived(layout[this.stage].name)
-	loggedShortNames = layout
-		.filter((stage) => stage.logged)
-		.map((stage) => stage.shortName) // eg. [ 'p', 'cp', 'mp 1', 'mp 2', 'mp 3', 'cp', 'p' ]
+	layout = $derived(this._config.layout)
+	finished = $derived(this.stage === this.layout.length - 1)
+
+	autoStart = $derived(this.layout[this.stage].autoStart)
+	duration = $derived(this.layout[this.stage].duration)
+	instructions = $derived(this.layout[this.stage].instructions)
+	name = $derived(this.layout[this.stage].name)
+	loggedShortNames = $derived(
+		this.layout
+			.filter((stage: Stage) => stage.logged)
+			.map((stage: Stage) => stage.shortName),
+	)
+
+	exerciseType = $derived(this._config.type)
+	exerciseName = $derived(this._config.name)
 
 	// iOS requires sounds to be instigated by user action (button, swipe etc)
 	// Audio state is managed in session to persist across Timer component recreations
@@ -46,6 +58,23 @@ export class Session {
 
 	saveError = $state('')
 	sessionSaved = $state(false)
+
+	setExercise(config: ExerciseConfig) {
+		this._config = config
+		this.reset()
+	}
+
+	reset() {
+		this.stage = 0
+		this.log = []
+		this.date = new Date()
+		this.sessionSaved = false
+		this.saveError = ''
+	}
+
+	mapLogToSession(): BreathingSession {
+		return this._config.mapLogToSession(this.log, this.date)
+	}
 }
 
 export const session = new Session()
@@ -62,30 +91,17 @@ export async function loadTodaysSessions() {
 }
 
 export async function saveSession() {
-	// TODO: I think this can be changed to session.finished = false
-	if (!browser || session.log.length < 7) return
+	if (!browser) return
+
+	const loggedStages = session.layout.filter((s: Stage) => s.logged)
+	if (session.log.length < loggedStages.length) return
 
 	try {
-		const sessionData: BreathingSession = {
-			controlPause1: session.log[1],
-			controlPause2: session.log[5],
-			date: session.date,
-			id: session.date.getTime().toString(),
-			maxPause1: session.log[2],
-			maxPause2: session.log[3],
-			maxPause3: session.log[4],
-			note: '', // TODO: add note to session
-			personalBest: {
-				maxPause3: false, // This will be set by breathingStorage.saveSession()
-			},
-			pulse1: session.log[0],
-			pulse2: session.log[6],
-		}
+		const sessionData = session.mapLogToSession()
 
 		await breathingStorage.saveSession(sessionData)
 		session.sessionSaved = true
 		session.saveError = ''
-		// Reload today's sessions to include the new one
 		await loadTodaysSessions()
 	} catch (error) {
 		console.error('Failed to save session:', error)

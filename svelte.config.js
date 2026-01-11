@@ -9,8 +9,8 @@ const config = {
 	preprocess: vitePreprocess(),
 	vitePlugin: {
 		// https://github.com/sveltejs/vite-plugin-svelte/blob/main/docs/inspector.md
-		inspector: true,  // alt-x (option) to enable
-	}
+		inspector: true, // alt-x (option) to enable
+	},
 }
 
 export default config

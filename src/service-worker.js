@@ -12,7 +12,7 @@ const CACHE = `cache-${version}`
 const ASSETS = [
 	...build, // the app itself
 	...files, // everything in `static`
-	...prerendered // prerendered routes
+	...prerendered, // prerendered routes
 ]
 
 self.addEventListener('install', (event) => {
@@ -87,4 +87,3 @@ self.addEventListener('fetch', (event) => {
 
 	event.respondWith(respond())
 })
-

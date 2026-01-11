@@ -1,4 +1,8 @@
-const intro = {
+import type { BreathingSession } from '$lib/breathingStorage'
+
+import type { ExerciseConfig, Stage } from './types'
+
+const intro: Stage = {
 	autoStart: false,
 	duration: 0,
 	instructions: `
@@ -8,20 +12,20 @@ const intro = {
 	or by taking a free five-day beginners course from <a href="https://www.learnbuteykoonline.net/" 
 	target="_blank">Learn Buteyko Online</a>.</p>`,
 	logged: false,
-	name: 'Buteyko Maximum Pause Exercise', // Introduction
+	name: 'Classical Buteyko Exercise',
 	shortName: 'start',
 }
 
-const finished = {
+const finished: Stage = {
 	autoStart: false,
 	duration: 0,
 	instructions: 'You have accumulated CO2, congratulations!',
 	logged: false,
-	name: 'Finished 🔥',
+	name: 'Finished',
 	shortName: 'finished',
 }
 
-const pulse = {
+const pulse: Stage = {
 	autoStart: false,
 	duration: 15,
 	instructions: `<p>Find your pulse in your neck or wrist.  Count the number of heartbeats during the timer.</p>`,
@@ -30,7 +34,7 @@ const pulse = {
 	shortName: 'p',
 }
 
-const cp = {
+const cp: Stage = {
 	autoStart: false,
 	duration: 0,
 	instructions: `
@@ -41,7 +45,7 @@ const cp = {
 	shortName: 'cp',
 }
 
-const vsb = {
+const vsb: Stage = {
 	autoStart: true,
 	duration: 180,
 	instructions: `
@@ -53,7 +57,7 @@ const vsb = {
 	shortName: 'vsb',
 }
 
-const suppress = {
+const suppress: Stage = {
 	autoStart: true,
 	duration: 10,
 	instructions: `
@@ -63,7 +67,7 @@ const suppress = {
 	shortName: 'suppress',
 }
 
-const recover = {
+const recover: Stage = {
 	autoStart: true,
 	duration: 30,
 	instructions: `<p>Allow your body to breathe naturally and let the sense of air hunger fade.</p>`,
@@ -72,7 +76,7 @@ const recover = {
 	shortName: 'recover',
 }
 
-const mp = {
+const mp: Stage = {
 	autoStart: false,
 	duration: 0,
 	instructions: '',
@@ -81,7 +85,7 @@ const mp = {
 	shortName: 'mp',
 }
 
-export const layout = [
+export const classicalLayout: Stage[] = [
 	intro,
 	pulse,
 	cp,
@@ -115,7 +119,7 @@ export const layout = [
 	{
 		...mp,
 		instructions: `<h3>Full Effort</h3>
-		<p>After a normal exhale, pinch your nose and hold your breath. Add walking tohelp extend the breath hold.</p>`,
+		<p>After a normal exhale, pinch your nose and hold your breath. Add walking to help extend the breath hold.</p>`,
 		name: 'Maximum Pause',
 		shortName: 'mp 3',
 	},
@@ -127,3 +131,29 @@ export const layout = [
 	pulse,
 	finished,
 ]
+
+function mapLogToSession(log: number[], date: Date): BreathingSession {
+	return {
+		controlPause1: log[1] ?? 0,
+		controlPause2: log[5] ?? 0,
+		date,
+		exerciseType: 'classical',
+		id: date.getTime().toString(),
+		maxPause1: log[2] ?? 0,
+		maxPause2: log[3] ?? 0,
+		maxPause3: log[4] ?? 0,
+		note: '',
+		pulse1: log[0] ?? 0,
+		pulse2: log[6] ?? 0,
+	}
+}
+
+export const classicalExercise: ExerciseConfig = {
+	description:
+		'The full Buteyko Maximum Pause exercise with three breath holds of increasing intensity.',
+	layout: classicalLayout,
+	mapLogToSession,
+	name: 'Classical Buteyko',
+	shortName: 'Classical',
+	type: 'classical',
+}

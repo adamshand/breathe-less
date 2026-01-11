@@ -1,20 +1,20 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(pnpm build:*)",
-      "Bash(pnpm check:*)",
-      "Bash(pnpm dev:*)",
-      "Bash(pnpm lint:*)",
-      "Bash(mkdir:*)",
-      "Bash(find:*)",
-      "Bash(git diff:*)",
-      "Bash(grep:*)",
-      "Bash(ls:*)",
-      "Bash(rg:*)",
-      "WebFetch(domain:svelteplot.dev)",
-      "WebFetch(domain:localhost)",
-      "WebFetch(domain:github.com)"
-    ],
-    "deny": []
-  }
+	"permissions": {
+		"allow": [
+			"Bash(pnpm build:*)",
+			"Bash(pnpm check:*)",
+			"Bash(pnpm dev:*)",
+			"Bash(pnpm lint:*)",
+			"Bash(mkdir:*)",
+			"Bash(find:*)",
+			"Bash(git diff:*)",
+			"Bash(grep:*)",
+			"Bash(ls:*)",
+			"Bash(rg:*)",
+			"WebFetch(domain:svelteplot.dev)",
+			"WebFetch(domain:localhost)",
+			"WebFetch(domain:github.com)"
+		],
+		"deny": []
+	}
 }

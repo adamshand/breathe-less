@@ -1,119 +1,147 @@
 <script lang="ts">
-	import { goto } from '$app/navigation'
-	import PulseTimer from '$lib/components/PulseTimer.svelte'
-	import Stages from '$lib/components/Stages.svelte'
-	import Timer from '$lib/components/Timer.svelte'
-	import { loadTodaysSessions, saveSession, session } from '$lib/session.svelte'
-	import { layout } from '$lib/timers'
+	/* eslint-disable svelte/no-navigation-without-resolve -- consistent with existing codebase patterns */
+	import { classicalExercise } from '$lib/exercises/classical'
 
-	function handleBegin() {
-		session.stage = 1
-		session.sessionSaved = false
-		session.saveError = ''
-		session.date = new Date()
-		session.log = []
-	}
-
-	if (session.debugging) {
-		console.log('🪲 Debug mode: true')
-	}
-
-	function handleTimerDone(finalValue: number | undefined) {
-		// console.log('handleTimerDone()', { stage: session.stage }, { finalValue })
-
-		if (finalValue != undefined) {
-			session.log.push(finalValue)
-		}
-		session.stage++
-
-		if (session.finished) {
-			saveSession()
-		}
-	}
-
-	function handlePulseRecorded(pulseValue: number) {
-		// console.log('handlePulseRecorded()', { stage: session.stage }, { pulseValue })
-		session.log.push(pulseValue)
-		session.stage++
-
-		if (session.finished) {
-			saveSession()
-		}
-	}
-
-	// Helper to determine if current stage is a pulse stage
-	const isPulseStage = $derived(layout[session.stage]?.shortName === 'p')
-
-	$effect(() => {
-		if (session.finished && session.sessionSaved) {
-			// TODO: also send total number of sessions and days
-			if (window.umami) window.umami.track('Session finish')
-
-			session.stage = 0
-			goto('/history')
-		} else {
-			loadTodaysSessions()
-		}
-	})
+	const exercises = [
+		{
+			...classicalExercise,
+			available: true,
+			href: '/classical',
+		},
+		{
+			available: false,
+			description:
+				'A single Control Pause measurement to track your morning baseline.',
+			href: '/mcp',
+			name: 'Morning CP',
+			shortName: 'MCP',
+			type: 'mcp',
+		},
+		{
+			available: false,
+			description:
+				'A gentler variation focusing on reduced breathing without maximum pauses.',
+			href: '/diminished',
+			name: 'Diminished Breathing',
+			shortName: 'Diminished',
+			type: 'diminished',
+		},
+	]
 </script>
 
-<section>
-	<hgroup>
-		<h2>{@html session.name}</h2>
+<svelte:head>
+	<title>Breathe Less | Buteyko Breathing Exercises</title>
+	<meta
+		name="description"
+		content="Practice Buteyko breathing exercises to improve your control pause and overall breathing."
+	/>
+</svelte:head>
 
-		<div>{@html session.instructions}</div>
+<article>
+	<hgroup>
+		<h1>Breathe Less</h1>
+		<p>Choose an exercise to begin</p>
 	</hgroup>
 
-	{#if session.stage == 0}
-		<button data-umami-event="Session begin" onclick={handleBegin}>Begin</button
-		>
-	{:else}
-		{#key session.stage}
-			{#if isPulseStage}
-				<PulseTimer onPulseRecorded={handlePulseRecorded} />
-			{:else}
-				<Timer
-					autoStart={session.autoStart}
-					duration={session.duration}
-					onTimerDone={handleTimerDone}
-				/>
-			{/if}
-		{/key}
-	{/if}
-</section>
-
-<Stages log={session.log} />
+	<div class="exercise-grid">
+		{#each exercises as exercise (exercise.type)}
+			<a
+				href={exercise.available ? exercise.href : undefined}
+				class="exercise-card"
+				class:disabled={!exercise.available}
+			>
+				<h2>{exercise.name}</h2>
+				<p>{exercise.description}</p>
+				{#if !exercise.available}
+					<span class="coming-soon">Coming Soon</span>
+				{/if}
+			</a>
+		{/each}
+	</div>
+</article>
 
 <style>
-	section {
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		align-items: center;
+	article {
+		padding: var(--size-4);
+		max-width: 800px;
+		margin: 0 auto;
+	}
 
-		margin: 1rem;
+	hgroup {
 		text-align: center;
-		font-size: var(--font-size-3);
-	}
-	h2 {
-		font-size: var(--font-size-6);
-		font-weight: var(--font-weight-5);
+		margin-bottom: var(--size-6);
+
+		h1 {
+			font-size: var(--font-size-7);
+			font-weight: var(--font-weight-6);
+			color: var(--brand);
+			margin: 0;
+		}
+
+		p {
+			font-size: var(--font-size-3);
+			color: var(--text-2);
+			margin: var(--size-2) 0 0 0;
+		}
 	}
 
-	button {
-		width: 100%;
-		background-color: var(--brand);
-		color: var(--surface-1);
-		border-radius: var(--radius-5);
-		box-shadow: none;
-
-		font-family: var(--font-humanist);
-		font-size: var(--font-size-5);
-		font-weight: var(--font-weight-5);
-		cursor: pointer;
+	.exercise-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		gap: var(--size-4);
 	}
-	button:hover {
-		background-color: var(--surface-1);
-		color: var(--brand);
+
+	.exercise-card {
+		display: block;
+		padding: var(--size-5);
+		background: var(--surface-2);
+		border: 1px solid var(--surface-3);
+		border-radius: var(--radius-3);
+		text-decoration: none;
+		color: inherit;
+		transition: all 0.2s ease;
+		position: relative;
+
+		&:hover:not(.disabled) {
+			border-color: var(--brand);
+			background: var(--surface-3);
+			transform: translateY(-2px);
+			box-shadow: var(--shadow-3);
+		}
+
+		h2 {
+			font-size: var(--font-size-4);
+			font-weight: var(--font-weight-6);
+			color: var(--brand);
+			margin: 0 0 var(--size-2) 0;
+		}
+
+		p {
+			font-size: var(--font-size-2);
+			color: var(--text-2);
+			margin: 0;
+			line-height: 1.5;
+		}
+	}
+
+	.exercise-card.disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+
+		h2 {
+			color: var(--text-2);
+		}
+	}
+
+	.coming-soon {
+		display: inline-block;
+		margin-top: var(--size-3);
+		padding: var(--size-1) var(--size-2);
+		background: var(--surface-3);
+		border-radius: var(--radius-2);
+		font-size: var(--font-size-0);
+		color: var(--text-2);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
 	}
 </style>

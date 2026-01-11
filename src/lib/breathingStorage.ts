@@ -1,15 +1,16 @@
+/* eslint-disable perfectionist/sort-modules -- ExerciseType must be defined before BreathingSession uses it */
+export type ExerciseType = 'classical' | 'diminished' | 'mcp'
+
 export interface BreathingSession {
 	controlPause1: number
 	controlPause2: number
 	date: Date
+	exerciseType: ExerciseType
 	id: string // timestamp-based ID
-	maxPause1: number // light effort
-	maxPause2: number // medium effort
-	maxPause3: number // maximum effort
+	maxPause1: number // light effort (classical only)
+	maxPause2: number // medium effort (classical only)
+	maxPause3: number // maximum effort (classical only)
 	note: string
-	personalBest: {
-		maxPause3: boolean
-	}
 	pulse1: number
 	pulse2: number
 }
@@ -18,7 +19,7 @@ class BreathingStorage {
 	private db: IDBDatabase | null = null
 	private dbName = 'BreathingApp' // TODO: rename to breatheless
 	private storeName = 'sessions'
-	private version = 3
+	private version = 4
 
 	async getAllSessions(): Promise<BreathingSession[]> {
 		if (!this.db) await this.init()
@@ -70,7 +71,7 @@ class BreathingStorage {
 
 	async importSessions(
 		sessions: BreathingSession[],
-	): Promise<{ errors: string[]; imported: number; }> {
+	): Promise<{ errors: string[]; imported: number }> {
 		if (!this.db) await this.init()
 
 		const errors: string[] = []
@@ -82,18 +83,7 @@ class BreathingStorage {
 
 			// Handle transaction completion
 			transaction.oncomplete = () => {
-				// After successful import, recalculate personal bests
-				this.recalculatePersonalBests()
-					.then(() => resolve({ errors, imported }))
-					.catch((error) =>
-						resolve({
-							errors: [
-								...errors,
-								`Personal best recalculation failed: ${error.message}`,
-							],
-							imported,
-						}),
-					)
+				resolve({ errors, imported })
 			}
 
 			transaction.onerror = () => {
@@ -108,14 +98,12 @@ class BreathingStorage {
 					controlPause1: session.controlPause1,
 					controlPause2: session.controlPause2,
 					date: new Date(session.date), // Ensure it's a proper Date object
+					exerciseType: session.exerciseType,
 					id: session.id,
 					maxPause1: session.maxPause1,
 					maxPause2: session.maxPause2,
 					maxPause3: session.maxPause3,
 					note: session.note,
-					personalBest: {
-						maxPause3: session.personalBest.maxPause3,
-					},
 					pulse1: session.pulse1,
 					pulse2: session.pulse2,
 				}
@@ -182,98 +170,10 @@ class BreathingStorage {
 				if (event.oldVersion < 3) {
 					this.migrateToVersion3Sync(store)
 				}
-			}
-		})
-	}
 
-	async isPersonalBestMaxPause3(currentMaxPause3: number): Promise<boolean> {
-		if (!this.db) await this.init()
-
-		return new Promise((resolve, reject) => {
-			const transaction = this.db!.transaction([this.storeName], 'readonly')
-			const store = transaction.objectStore(this.storeName)
-			const request = store.getAll()
-
-			request.onsuccess = () => {
-				const records = request.result
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const migratedRecords = records.map((record: any) =>
-					this.needsMigration(record) ? this.migrateOldRecord(record) : record,
-				)
-
-				// Find the highest maxPause3 score in existing sessions
-				const highestPreviousScore = migratedRecords.reduce((max, session) => {
-					return Math.max(max, session.maxPause3 || 0)
-				}, 0)
-
-				// Current session is a personal best if it's higher than all previous scores
-				resolve(currentMaxPause3 > highestPreviousScore)
-			}
-			request.onerror = () => reject(request.error)
-		})
-	}
-
-	async recalculatePersonalBests(): Promise<void> {
-		if (!this.db) await this.init()
-
-		return new Promise((resolve, reject) => {
-			const transaction = this.db!.transaction([this.storeName], 'readwrite')
-			const store = transaction.objectStore(this.storeName)
-			const getAllRequest = store.getAll()
-
-			getAllRequest.onsuccess = () => {
-				const sessions = getAllRequest.result
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const migratedSessions = sessions.map((record: any) =>
-					this.needsMigration(record) ? this.migrateOldRecord(record) : record,
-				)
-
-				// Sort sessions by date to process chronologically
-				migratedSessions.sort(
-					(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-				)
-
-				let highestMaxPause3 = 0
-				let updatesCompleted = 0
-				const totalUpdates = migratedSessions.length
-
-				if (totalUpdates === 0) {
-					resolve()
-					return
+				if (event.oldVersion < 4) {
+					this.migrateToVersion4Sync(store)
 				}
-
-				// Process each session and update personal best flags
-				migratedSessions.forEach((session) => {
-					const wasPersonalBest = session.maxPause3 > highestMaxPause3
-					if (wasPersonalBest) {
-						highestMaxPause3 = session.maxPause3
-					}
-
-					// Update the session's personal best flag
-					session.personalBest.maxPause3 = wasPersonalBest
-
-					const putRequest = store.put(session)
-					putRequest.onsuccess = () => {
-						updatesCompleted++
-						if (updatesCompleted === totalUpdates) {
-							resolve()
-						}
-					}
-					putRequest.onerror = () => {
-						updatesCompleted++
-						if (updatesCompleted === totalUpdates) {
-							resolve() // Continue even if some updates fail
-						}
-					}
-				})
-			}
-
-			getAllRequest.onerror = () => {
-				reject(
-					new Error(
-						`Failed to retrieve sessions for personal best recalculation: ${getAllRequest.error?.message}`,
-					),
-				)
 			}
 		})
 	}
@@ -290,14 +190,12 @@ class BreathingStorage {
 				controlPause1: session.controlPause1,
 				controlPause2: session.controlPause2,
 				date: new Date(session.date), // Ensure it's a proper Date object
+				exerciseType: session.exerciseType,
 				id: session.id,
 				maxPause1: session.maxPause1,
 				maxPause2: session.maxPause2,
 				maxPause3: session.maxPause3,
 				note: session.note,
-				personalBest: {
-					maxPause3: session.personalBest.maxPause3,
-				},
 				pulse1: session.pulse1,
 				pulse2: session.pulse2,
 			}
@@ -311,9 +209,6 @@ class BreathingStorage {
 
 	async saveSession(session: BreathingSession): Promise<void> {
 		if (!this.db) await this.init()
-
-		const isPersonalBest = await this.isPersonalBestMaxPause3(session.maxPause3)
-		session.personalBest.maxPause3 = isPersonalBest
 
 		return new Promise((resolve, reject) => {
 			const transaction = this.db!.transaction([this.storeName], 'readwrite')
@@ -337,12 +232,12 @@ class BreathingStorage {
 			controlPause1: oldRecord.controlPause1 || 0,
 			controlPause2: oldRecord.controlPause2 || 0,
 			date: dateToUse,
+			exerciseType: oldRecord.exerciseType || 'classical',
 			id: oldRecord.id,
 			maxPause1: oldRecord.maxPause1 || 0,
 			maxPause2: oldRecord.maxPause2 || 0,
 			maxPause3: oldRecord.maxPause3 || 0,
 			note: oldRecord.note || '',
-			personalBest: oldRecord.personalBest || { maxPause3: false },
 			pulse1: oldRecord.pulse1 || 0,
 			pulse2: oldRecord.pulse2 || 0,
 		}
@@ -377,9 +272,8 @@ class BreathingStorage {
 			const cursor = (event.target as IDBRequest).result
 			if (cursor) {
 				const record = cursor.value
-				if (!('note' in record) || !('personalBest' in record)) {
+				if (!('note' in record)) {
 					record.note = record.note || ''
-					record.personalBest = record.personalBest || { maxPause3: false }
 					cursor.update(record)
 				}
 				cursor.continue()
@@ -394,6 +288,40 @@ class BreathingStorage {
 		}
 	}
 
+	private migrateToVersion4Sync(store: IDBObjectStore): void {
+		const cursorRequest = store.openCursor()
+
+		cursorRequest.onsuccess = (event) => {
+			const cursor = (event.target as IDBRequest).result
+			if (cursor) {
+				const record = cursor.value
+				let needsUpdate = false
+
+				if (!('exerciseType' in record)) {
+					record.exerciseType = 'classical'
+					needsUpdate = true
+				}
+
+				if ('personalBest' in record) {
+					delete record.personalBest
+					needsUpdate = true
+				}
+
+				if (needsUpdate) {
+					cursor.update(record)
+				}
+				cursor.continue()
+			}
+		}
+
+		cursorRequest.onerror = () => {
+			console.error(
+				'Failed to migrate records to version 4:',
+				cursorRequest.error,
+			)
+		}
+	}
+
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	private needsMigration(record: any): boolean {
 		return (
@@ -401,7 +329,7 @@ class BreathingStorage {
 			!('pulse1' in record) ||
 			!('pulse2' in record) ||
 			!('note' in record) ||
-			!('personalBest' in record)
+			!('exerciseType' in record)
 		)
 	}
 }
