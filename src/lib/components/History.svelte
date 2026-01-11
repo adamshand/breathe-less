@@ -8,11 +8,20 @@
 
 	let copied = $state(false)
 
+	const sortedSessions = $derived(
+		[...sessions].sort(
+			(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+		),
+	)
+
+	function displayValue(value: number): string {
+		return value === 0 ? '-' : String(value)
+	}
+
 	async function copyHTML() {
 		const copiedHTML = document.getElementById('copyme')
 
 		if (copiedHTML) {
-			// ClipboardItem requires HTTPS (so no dev mode),
 			const clipboardItem = new ClipboardItem({
 				'text/html': new Blob([copiedHTML.outerHTML], {
 					type: 'text/html',
@@ -45,42 +54,43 @@
 			{#if copied}
 				<span style="font-size: var(--font-size-0)">Copied</span>
 				<CheckIcon color="var(--brand)" size={8} strokeWidth={2} />
-				<!--  -->
 			{:else}
 				<ClipboardCopyIcon color="var(--brand)" size={8} strokeWidth={2} />
 			{/if}
 		</button>
 	</h3>
 
-	<table id="copyme">
-		<thead>
-			<tr>
-				<th>Time</th> <th>P1</th> <th>CP1</th> <th>MP1</th> <th>MP2</th>
-				<th>MP3</th>
-				<th>CP2</th> <th>P2</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each sessions as session (session.date)}
+	{#if sortedSessions.length > 0}
+		<table id="copyme">
+			<thead>
 				<tr>
-					<td>
-						{session.date.toLocaleTimeString('en-NZ', {
-							hour: '2-digit',
-							hour12: true,
-							minute: '2-digit',
-						})}
-					</td>
-					<td>{session.pulse1}</td>
-					<td>{session.controlPause1}</td>
-					<td>{session.maxPause1}</td>
-					<td>{session.maxPause2}</td>
-					<td>{session.maxPause3}</td>
-					<td>{session.controlPause2}</td>
-					<td>{session.pulse2}</td>
+					<th>Time</th> <th>P1</th> <th>CP1</th> <th>MP1</th> <th>MP2</th>
+					<th>MP3</th>
+					<th>CP2</th> <th>P2</th>
 				</tr>
-			{/each}
-		</tbody>
-	</table>
+			</thead>
+			<tbody>
+				{#each sortedSessions as session (session.id)}
+					<tr class:mcp-row={session.exerciseType === 'mcp'}>
+						<td>
+							{new Date(session.date).toLocaleTimeString('en-NZ', {
+								hour: '2-digit',
+								hour12: true,
+								minute: '2-digit',
+							})}
+						</td>
+						<td>{displayValue(session.pulse1)}</td>
+						<td>{displayValue(session.controlPause1)}</td>
+						<td>{displayValue(session.maxPause1)}</td>
+						<td>{displayValue(session.maxPause2)}</td>
+						<td>{displayValue(session.maxPause3)}</td>
+						<td>{displayValue(session.controlPause2)}</td>
+						<td>{displayValue(session.pulse2)}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	{/if}
 </section>
 
 <style>
@@ -111,6 +121,7 @@
 			}
 		}
 	}
+
 	table {
 		width: 100%;
 		margin-inline: auto;
@@ -138,6 +149,10 @@
 
 		tbody > tr:hover {
 			background-color: var(--surface-3);
+		}
+
+		tbody > tr.mcp-row {
+			color: var(--teal-6);
 		}
 	}
 </style>

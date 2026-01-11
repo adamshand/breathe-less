@@ -1,4 +1,5 @@
 <script lang="ts">
+	/* eslint-disable svelte/prefer-svelte-reactivity -- Map used in pure functions, not reactive state */
 	import {
 		type BreathingSession,
 		breathingStorage,
@@ -22,13 +23,34 @@
 		}
 	})
 
-	function getDailyControlPauseData(sessions: BreathingSession[]) {
-		const validSessions = sessions.filter(
-			(session) => session.controlPause1 > 0,
+	function getMCPData(sessions: BreathingSession[]) {
+		const mcpSessions = sessions.filter(
+			(s) => s.exerciseType === 'mcp' && s.controlPause1 > 0,
 		)
-		const dailyGroups = new Map<string, BreathingSession[]>()
 
-		validSessions.forEach((session) => {
+		const dailyMCP = new Map<string, number>()
+		mcpSessions.forEach((session) => {
+			const dateKey = new Date(session.date).toDateString()
+			if (!dailyMCP.has(dateKey)) {
+				dailyMCP.set(dateKey, session.controlPause1)
+			}
+		})
+
+		return Array.from(dailyMCP.entries())
+			.map(([dateKey, mcp]) => ({
+				date: new Date(dateKey),
+				mcp,
+			}))
+			.sort((a, b) => a.date.getTime() - b.date.getTime())
+	}
+
+	function getDailyCP1BandData(sessions: BreathingSession[]) {
+		const nonMcpSessions = sessions.filter(
+			(s) => s.exerciseType !== 'mcp' && s.controlPause1 > 0,
+		)
+
+		const dailyGroups = new Map<string, BreathingSession[]>()
+		nonMcpSessions.forEach((session) => {
 			const dateKey = new Date(session.date).toDateString()
 			if (!dailyGroups.has(dateKey)) {
 				dailyGroups.set(dateKey, [])
@@ -38,84 +60,77 @@
 
 		return Array.from(dailyGroups.entries())
 			.map(([dateKey, daySessions]) => {
-				daySessions.sort(
-					(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-				)
-
-				const firstSessionCP = daySessions[0].controlPause1
-				const dailyAverageFirstCP =
-					daySessions.reduce((sum, s) => sum + s.controlPause1, 0) /
-					daySessions.length
-
-				const firstCPs = daySessions.map((s) => s.controlPause1)
-				const secondCPs = daySessions
-					.filter((s) => s.controlPause2 > 0)
-					.map((s) => s.controlPause2)
-
-				const lowestFirstCP = Math.min(...firstCPs)
-				const highestSecondCP =
-					secondCPs.length > 0 ? Math.max(...secondCPs) : 0
+				const cp1Values = daySessions.map((s) => s.controlPause1)
+				const lowestCP1 = Math.min(...cp1Values)
+				const highestCP1 = Math.max(...cp1Values)
 
 				return {
-					averageCP: Math.round(dailyAverageFirstCP * 10) / 10,
+					cp1High: highestCP1,
+					cp1Low: lowestCP1,
 					date: new Date(dateKey),
-					firstCP: firstSessionCP,
-					highestSecondCP: highestSecondCP,
-					lowestFirstCP: lowestFirstCP,
 				}
 			})
 			.sort((a, b) => a.date.getTime() - b.date.getTime())
 	}
 
-	const chartData = $derived.by(() => {
+	const mcpData = $derived.by(() => {
 		if (allSessions.length === 0) return []
-		return getDailyControlPauseData(allSessions)
+		return getMCPData(allSessions)
 	})
 
-	const cpChartOptions = $derived.by(() => {
-		if (chartData.length === 0) return {}
+	const cp1BandData = $derived.by(() => {
+		if (allSessions.length === 0) return []
+		return getDailyCP1BandData(allSessions)
+	})
+
+	const hasEnoughData = $derived(mcpData.length >= 3 || cp1BandData.length >= 3)
+
+	const chartOptions = $derived.by(() => {
+		if (!hasEnoughData) return {}
+
+		const marks = []
+
+		if (cp1BandData.length >= 3) {
+			marks.push(
+				Plot.areaY(cp1BandData, {
+					curve: 'monotone-x',
+					fill: 'var(--brand)',
+					fillOpacity: 0.2,
+					x: 'date',
+					y1: 'cp1Low',
+					y2: 'cp1High',
+				}),
+			)
+		}
+
+		if (mcpData.length >= 3) {
+			marks.push(
+				Plot.line(mcpData, {
+					curve: 'monotone-x',
+					stroke: 'var(--teal-6)',
+					strokeWidth: 2,
+					x: 'date',
+					y: 'mcp',
+				}),
+			)
+		}
 
 		return {
 			height: 400,
 			marginLeft: 60,
-			marks: [
-				Plot.line(chartData, {
-					curve: 'monotone-x',
-					stroke: 'var(--brand)',
-					strokeWidth: 2,
-					x: 'date',
-					y: 'firstCP',
-				}),
-				Plot.line(chartData, {
-					curve: 'monotone-x',
-					stroke: 'var(--blue-6)',
-					strokeDasharray: '5,5',
-					strokeWidth: 2,
-					x: 'date',
-					y: 'averageCP',
-				}),
-				Plot.line(chartData, {
-					curve: 'cardinal',
-					stroke: 'var(--red-6)',
-					strokeDasharray: '2,2',
-					strokeWidth: 2,
-					x: 'date',
-					y: 'lowestFirstCP',
-				}),
-				Plot.line(chartData, {
-					curve: 'cardinal',
-					stroke: 'var(--green-6)',
-					strokeDasharray: '8,3',
-					strokeWidth: 2,
-					x: 'date',
-					y: 'highestSecondCP',
-				}),
-			],
-			subtitle: 'Daily Control Pause Trends',
+			marks,
+			subtitle: 'Morning CP and Daily CP Range',
 			x: { label: 'Date' },
 			y: { grid: true, label: 'Control Pause (seconds)' },
 		}
 	})
+
+	const totalDays = $derived(
+		new Set([
+			...cp1BandData.map((d) => d.date.toDateString()),
+			...mcpData.map((d) => d.date.toDateString()),
+		]).size,
+	)
 </script>
 
 <svelte:head>
@@ -129,56 +144,46 @@
 <article>
 	<hgroup>
 		<h1>Control Pause Charts</h1>
-		<p>Track your daily control pause trends</p>
+		<p>Track your progress over time</p>
 	</hgroup>
 
 	{#if loading}
 		<div class="loading">Loading chart data...</div>
 	{:else if error}
 		<div class="error">Error: {error}</div>
-	{:else if chartData.length <= 2}
+	{:else if !hasEnoughData}
 		<div class="single-point">
 			<p>The chart is not shown until you have practiced for three days.</p>
 		</div>
 	{:else}
 		<div class="chart-container">
 			<div class="chart-wrapper">
-				<ObservablePlot options={cpChartOptions} />
+				<ObservablePlot options={chartOptions} />
 			</div>
 
 			<div class="chart-info">
 				<div class="legend">
-					<div class="legend-item">
-						<div
-							class="legend-line solid"
-							style="background-color: var(--brand);"
-						></div>
-						<span>First CP of Day</span>
-					</div>
-					<div class="legend-item">
-						<div
-							class="legend-line dashed"
-							style="background-color: var(--blue-6);"
-						></div>
-						<span>Daily Average First CP</span>
-					</div>
-					<div class="legend-item">
-						<div
-							class="legend-line dotted"
-							style="background-color: var(--red-6);"
-						></div>
-						<span>Lowest First CP per Day</span>
-					</div>
-					<div class="legend-item">
-						<div
-							class="legend-line medium-dashed"
-							style="background-color: var(--green-6);"
-						></div>
-						<span>Highest Second CP per Day</span>
-					</div>
+					{#if mcpData.length >= 3}
+						<div class="legend-item">
+							<div
+								class="legend-line solid"
+								style="background-color: var(--teal-6);"
+							></div>
+							<span>Morning CP (MCP)</span>
+						</div>
+					{/if}
+					{#if cp1BandData.length >= 3}
+						<div class="legend-item">
+							<div
+								class="legend-area"
+								style="background-color: var(--brand); opacity: 0.2;"
+							></div>
+							<span>Daily CP1 Range (High-Low)</span>
+						</div>
+					{/if}
 				</div>
 				<p>
-					Tracking {allSessions.length} sessions over {chartData.length} days.
+					Tracking {allSessions.length} sessions over {totalDays} days.
 				</p>
 			</div>
 		</div>
@@ -277,37 +282,10 @@
 		border-radius: 1px;
 	}
 
-	.legend-line.dashed {
-		background-image: repeating-linear-gradient(
-			to right,
-			var(--blue-6) 0px,
-			var(--blue-6) 5px,
-			transparent 5px,
-			transparent 10px
-		);
-		background-color: transparent;
-	}
-
-	.legend-line.dotted {
-		background-image: repeating-linear-gradient(
-			to right,
-			var(--red-6) 0px,
-			var(--red-6) 2px,
-			transparent 2px,
-			transparent 4px
-		);
-		background-color: transparent;
-	}
-
-	.legend-line.medium-dashed {
-		background-image: repeating-linear-gradient(
-			to right,
-			var(--green-6) 0px,
-			var(--green-6) 8px,
-			transparent 8px,
-			transparent 11px
-		);
-		background-color: transparent;
+	.legend-area {
+		width: 20px;
+		height: 12px;
+		border-radius: 2px;
 	}
 
 	.chart-info p {

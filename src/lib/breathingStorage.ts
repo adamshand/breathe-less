@@ -69,6 +69,11 @@ class BreathingStorage {
 		})
 	}
 
+	async getTodaysMCP(): Promise<BreathingSession | null> {
+		const todaysSessions = await this.getSessionsByDate(new Date())
+		return todaysSessions.find((s) => s.exerciseType === 'mcp') || null
+	}
+
 	async importSessions(
 		sessions: BreathingSession[],
 	): Promise<{ errors: string[]; imported: number }> {

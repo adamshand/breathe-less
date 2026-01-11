@@ -1,6 +1,17 @@
 <script lang="ts">
 	/* eslint-disable svelte/no-navigation-without-resolve -- consistent with existing codebase patterns */
+	import type { BreathingSession } from '$lib/breathingStorage'
+
+	import { breathingStorage } from '$lib/breathingStorage'
 	import { classicalExercise } from '$lib/exercises/classical'
+	import { mcpExercise } from '$lib/exercises/mcp'
+	import { onMount } from 'svelte'
+
+	let todaysMCP: BreathingSession | null = $state(null)
+
+	onMount(async () => {
+		todaysMCP = await breathingStorage.getTodaysMCP()
+	})
 
 	const exercises = [
 		{
@@ -9,13 +20,9 @@
 			href: '/classical',
 		},
 		{
-			available: false,
-			description:
-				'A single Control Pause measurement to track your morning baseline.',
+			...mcpExercise,
+			available: true,
 			href: '/mcp',
-			name: 'Morning CP',
-			shortName: 'MCP',
-			type: 'mcp',
 		},
 		{
 			available: false,
@@ -50,11 +57,20 @@
 				class="exercise-card"
 				class:disabled={!exercise.available}
 			>
-				<h2>{exercise.name}</h2>
-				<p>{exercise.description}</p>
-				{#if !exercise.available}
-					<span class="coming-soon">Coming Soon</span>
-				{/if}
+				<div class="card-content">
+					<div class="card-text">
+						<h2>{exercise.name}</h2>
+						<p>{exercise.description}</p>
+						{#if !exercise.available}
+							<span class="coming-soon">Coming Soon</span>
+						{/if}
+					</div>
+					{#if exercise.type === 'mcp'}
+						<div class="mcp-badge" class:done={todaysMCP}>
+							{todaysMCP ? `${todaysMCP.controlPause1}s` : '?'}
+						</div>
+					{/if}
+				</div>
 			</a>
 		{/each}
 	</div>
@@ -143,5 +159,35 @@
 		color: var(--text-2);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
+	}
+
+	.card-content {
+		display: flex;
+		align-items: center;
+		gap: var(--size-3);
+	}
+
+	.card-text {
+		flex: 1;
+	}
+
+	.mcp-badge {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: var(--size-9);
+		height: var(--size-9);
+		border-radius: var(--radius-round);
+		border: 2px dashed var(--surface-4);
+		color: var(--text-2);
+		font-size: var(--font-size-2);
+		font-weight: var(--font-weight-5);
+		flex-shrink: 0;
+	}
+
+	.mcp-badge.done {
+		border: 2px solid var(--teal-6);
+		background: var(--teal-6);
+		color: white;
 	}
 </style>

@@ -90,6 +90,33 @@ export async function loadTodaysSessions() {
 	}
 }
 
+export async function saveMCPSession() {
+	if (!browser) return
+
+	const loggedStages = session.layout.filter((s: Stage) => s.logged)
+	if (session.log.length < loggedStages.length) return
+
+	try {
+		const existingMCP = await breathingStorage.getTodaysMCP()
+		const sessionData = session.mapLogToSession()
+
+		if (existingMCP) {
+			sessionData.id = existingMCP.id
+			sessionData.date = existingMCP.date
+			await breathingStorage.saveOrUpdateSession(sessionData)
+		} else {
+			await breathingStorage.saveSession(sessionData)
+		}
+
+		session.sessionSaved = true
+		session.saveError = ''
+		await loadTodaysSessions()
+	} catch (error) {
+		console.error('Failed to save MCP session:', error)
+		session.saveError = 'Failed to save session'
+	}
+}
+
 export async function saveSession() {
 	if (!browser) return
 
