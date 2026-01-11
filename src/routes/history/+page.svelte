@@ -11,6 +11,9 @@
 	let allSessions: BreathingSession[] = $state([])
 	let loading = $state(true)
 	let error = $state('')
+	let showNotes = $state(false)
+
+	const hasAnyNotes = $derived(allSessions.some((s) => s.note && s.note.trim()))
 
 	const sessionsByDate = $derived.by(() => {
 		const grouped = new SvelteMap<string, BreathingSession[]>()
@@ -70,9 +73,21 @@
 	{:else}
 		<Chart sessions={allSessions} />
 
+		{#if hasAnyNotes}
+			<div class="notes-toggle-container">
+				<button
+					class="notes-toggle"
+					class:active={showNotes}
+					onclick={() => (showNotes = !showNotes)}
+				>
+					{showNotes ? 'Hide notes' : 'Show notes'}
+				</button>
+			</div>
+		{/if}
+
 		<div class="day">
 			{#each Array.from(sessionsByDate.entries()) as [dateString, sessions] (dateString)}
-				<History {sessions} date={dateString} />
+				<History {sessions} date={dateString} {showNotes} />
 			{/each}
 		</div>
 	{/if}
@@ -90,6 +105,32 @@
 			font-size: var(--font-size-6);
 			font-weight: var(--font-weight-6);
 			margin: 0;
+		}
+	}
+
+	.notes-toggle-container {
+		display: flex;
+		justify-content: flex-end;
+		margin-bottom: var(--size-3);
+	}
+
+	.notes-toggle {
+		padding: var(--size-1) var(--size-2);
+		font-size: var(--font-size-0);
+		background: transparent;
+		border: 1px solid var(--surface-4);
+		border-radius: var(--radius-2);
+		color: var(--text-2);
+		cursor: pointer;
+
+		&:hover {
+			background: var(--surface-3);
+		}
+
+		&.active {
+			background: var(--brand);
+			border-color: var(--brand);
+			color: var(--surface-1);
 		}
 	}
 

@@ -1,10 +1,21 @@
 <script lang="ts">
-	import type { BreathingSession, ExerciseType } from '$lib/breathingStorage'
+	import type { BreathingSession } from '$lib/breathingStorage'
 
-	import { CheckIcon, ClipboardCopyIcon } from '@lucide/svelte'
+	import {
+		CheckIcon,
+		ClipboardCopyIcon,
+		Music,
+		Sunrise,
+		Wind,
+	} from '@lucide/svelte'
 
-	let { date, sessions }: { date: string; sessions: BreathingSession[] } =
-		$props()
+	interface Props {
+		date: string
+		sessions: BreathingSession[]
+		showNotes?: boolean
+	}
+
+	let { date, sessions, showNotes = false }: Props = $props()
 
 	let copied = $state(false)
 
@@ -16,17 +27,6 @@
 
 	function displayValue(value: number): string {
 		return value === 0 ? '-' : String(value)
-	}
-
-	function getExerciseBadge(type: ExerciseType): string {
-		switch (type) {
-			case 'classical':
-				return 'C'
-			case 'diminished':
-				return 'D'
-			case 'mcp':
-				return 'M'
-		}
 	}
 
 	async function copyHTML() {
@@ -78,17 +78,23 @@
 					<th></th>
 					<th>Time</th> <th>P1</th> <th>CP1</th> <th>MP1</th> <th>MP2</th>
 					<th>MP3</th>
-					<th>CP2</th> <th>P2</th>
+					<th>P2</th> <th>CP2</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each sortedSessions as session (session.id)}
 					<tr>
-						<td
-							><span title={session.exerciseType} class="exercise-badge"
-								>{getExerciseBadge(session.exerciseType)}</span
-							></td
-						>
+						<td>
+							<span title={session.exerciseType} class="exercise-icon">
+								{#if session.exerciseType === 'classical'}
+									<Music size={16} color="var(--brand)" />
+								{:else if session.exerciseType === 'diminished'}
+									<Wind size={16} color="var(--brand)" />
+								{:else if session.exerciseType === 'mcp'}
+									<Sunrise size={16} color="var(--brand)" />
+								{/if}
+							</span>
+						</td>
 						<td>
 							{new Date(session.date).toLocaleTimeString('en-NZ', {
 								hour: '2-digit',
@@ -101,9 +107,14 @@
 						<td>{displayValue(session.maxPause1)}</td>
 						<td>{displayValue(session.maxPause2)}</td>
 						<td>{displayValue(session.maxPause3)}</td>
-						<td>{displayValue(session.controlPause2)}</td>
 						<td>{displayValue(session.pulse2)}</td>
+						<td>{displayValue(session.controlPause2)}</td>
 					</tr>
+					{#if showNotes && session.note && session.note.trim()}
+						<tr class="note-row">
+							<td colspan="9">{session.note}</td>
+						</tr>
+					{/if}
 				{/each}
 			</tbody>
 		</table>
@@ -169,18 +180,19 @@
 		}
 	}
 
-	.exercise-badge {
+	.exercise-icon {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 1.5rem;
-		height: 1.5rem;
-		padding-top: 3px;
-		padding-right: 0px;
-		border: 1.5px solid var(--brand);
-		border-radius: var(--radius-round);
-		color: var(--brand);
+	}
+
+	.note-row td {
+		background-color: var(--surface-3);
+		padding: var(--size-2) var(--size-3);
 		font-size: var(--font-size-0);
-		font-weight: var(--font-weight-9);
+		font-style: italic;
+		color: var(--text-2);
+		text-align: left;
+		white-space: pre-wrap;
 	}
 </style>

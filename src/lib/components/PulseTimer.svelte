@@ -117,7 +117,11 @@
 
 <style>
 	section {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
 		width: 100%;
+		flex: 1;
 	}
 
 	#timer {
@@ -183,11 +187,11 @@
 	}
 
 	#cancel {
-		background-color: var(--red-6);
+		background-color: var(--brand);
 	}
 
 	#cancel:hover {
 		background-color: var(--surface-1);
-		color: var(--red-6);
+		color: var(--brand);
 	}
 </style>

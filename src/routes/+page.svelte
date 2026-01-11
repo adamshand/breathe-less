@@ -7,6 +7,7 @@
 	import { classicalExercise } from '$lib/exercises/classical'
 	import { diminishedExercise } from '$lib/exercises/diminished'
 	import { mcpExercise } from '$lib/exercises/mcp'
+	import { Music, Sunrise, Wind } from '@lucide/svelte'
 	import { onMount } from 'svelte'
 
 	let todaysMCP: BreathingSession | null = $state(null)
@@ -66,11 +67,22 @@
 							<span class="coming-soon">Coming Soon</span>
 						{/if}
 					</div>
-					{#if exercise.type === 'mcp'}
-						<div class="mcp-badge" class:done={todaysMCP}>
-							{todaysMCP ? `${todaysMCP.controlPause1}s` : '?'}
-						</div>
-					{/if}
+					<div
+						class="exercise-badge"
+						class:done={exercise.type === 'mcp' && todaysMCP}
+					>
+						{#if exercise.type === 'mcp'}
+							{#if todaysMCP}
+								{todaysMCP.controlPause1}s
+							{:else}
+								<Sunrise size={20} />
+							{/if}
+						{:else if exercise.type === 'classical'}
+							<Music size={20} />
+						{:else if exercise.type === 'diminished'}
+							<Wind size={20} />
+						{/if}
+					</div>
 				</div>
 			</a>
 		{/each}
@@ -155,7 +167,7 @@
 		flex: 1;
 	}
 
-	.mcp-badge {
+	.exercise-badge {
 		display: flex;
 		align-items: center;
 		justify-content: center;

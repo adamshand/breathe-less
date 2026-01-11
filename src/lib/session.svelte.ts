@@ -54,6 +54,7 @@ export class Session {
 
 	log: number[] = $state([])
 	date = new Date() // doesn't need to be reactive
+	note = $state('')
 	todaysSessions: BreathingSession[] = $state([])
 
 	saveError = $state('')
@@ -68,6 +69,7 @@ export class Session {
 		this.stage = 0
 		this.log = []
 		this.date = new Date()
+		this.note = ''
 		this.sessionSaved = false
 		this.saveError = ''
 	}
@@ -99,6 +101,7 @@ export async function saveMCPSession() {
 	try {
 		const existingMCP = await breathingStorage.getTodaysMCP()
 		const sessionData = session.mapLogToSession()
+		sessionData.note = session.note
 
 		if (existingMCP) {
 			sessionData.id = existingMCP.id
@@ -125,6 +128,7 @@ export async function saveSession() {
 
 	try {
 		const sessionData = session.mapLogToSession()
+		sessionData.note = session.note
 
 		await breathingStorage.saveSession(sessionData)
 		session.sessionSaved = true

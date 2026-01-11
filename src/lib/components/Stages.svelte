@@ -48,9 +48,9 @@
 			right: -12px;
 			top: 50%;
 			transform: translateY(-50%);
-			border-left: 12px solid var(--brand);
-			border-top: 12px solid transparent;
-			border-bottom: 12px solid transparent;
+			border: 12px solid transparent;
+			border-left-color: var(--brand);
+			border-right: none;
 			z-index: 1;
 		}
 
@@ -60,9 +60,9 @@
 			right: -10px;
 			top: 50%;
 			transform: translateY(-50%);
-			border-left: 10px solid var(--surface-2);
-			border-top: 10px solid transparent;
-			border-bottom: 10px solid transparent;
+			border: 10px solid transparent;
+			border-left-color: var(--surface-2);
+			border-right: none;
 			z-index: 2;
 		}
 	}

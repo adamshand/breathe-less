@@ -37,10 +37,10 @@
 			session.log.push(finalValue)
 		}
 		session.stage++
+	}
 
-		if (session.finished) {
-			saveMCPSession()
-		}
+	function handleSave() {
+		saveMCPSession()
 	}
 
 	$effect(() => {
@@ -87,10 +87,21 @@
 				onTimerDone={handleTimerDone}
 			/>
 		{/key}
-	{:else}
-		<div class="result">
-			<p class="value">{session.log[0]}s</p>
-			<p class="label">Morning Control Pause</p>
+	{:else if !session.sessionSaved}
+		<div class="finished">
+			<div class="result">
+				<p class="value">{session.log[0]}s</p>
+				<p class="label">Morning Control Pause</p>
+			</div>
+			<label>
+				<span>Notes (optional)</span>
+				<textarea
+					bind:value={session.note}
+					placeholder="How did it go?"
+					rows="3"
+				></textarea>
+			</label>
+			<button onclick={handleSave}>Save</button>
 		</div>
 	{/if}
 </section>
@@ -99,8 +110,9 @@
 	section {
 		display: flex;
 		flex-direction: column;
-		justify-content: space-between;
+		justify-content: flex-start;
 		align-items: center;
+		flex: 1;
 
 		margin: 1rem;
 		text-align: center;
@@ -138,7 +150,7 @@
 	}
 
 	.result {
-		padding: var(--size-6);
+		padding: var(--size-4);
 		text-align: center;
 
 		.value {
@@ -152,6 +164,42 @@
 			font-size: var(--font-size-2);
 			color: var(--text-2);
 			margin: var(--size-2) 0 0 0;
+		}
+	}
+
+	.finished {
+		display: flex;
+		flex-direction: column;
+		gap: var(--size-4);
+		width: 100%;
+
+		label {
+			display: flex;
+			flex-direction: column;
+			gap: var(--size-2);
+			text-align: left;
+
+			span {
+				font-size: var(--font-size-2);
+				color: var(--text-2);
+			}
+		}
+
+		textarea {
+			width: 100%;
+			padding: var(--size-2);
+			border: 1px solid var(--surface-4);
+			border-radius: var(--radius-2);
+			background: var(--surface-3);
+			color: var(--text-1);
+			font-family: var(--font-humanist);
+			font-size: var(--font-size-2);
+			resize: vertical;
+
+			&:focus {
+				outline: 2px solid var(--brand);
+				outline-offset: 2px;
+			}
 		}
 	}
 </style>

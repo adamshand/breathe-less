@@ -29,19 +29,15 @@
 			session.log.push(finalValue)
 		}
 		session.stage++
-
-		if (session.finished) {
-			saveSession()
-		}
 	}
 
 	function handlePulseRecorded(pulseValue: number) {
 		session.log.push(pulseValue)
 		session.stage++
+	}
 
-		if (session.finished) {
-			saveSession()
-		}
+	function handleSave() {
+		saveSession()
 	}
 
 	const isPulseStage = $derived(
@@ -54,7 +50,7 @@
 				window.umami.track('Session finish', { exercise: 'classical' })
 
 			session.reset()
-			goto('/history?exercise=classical')
+			goto('/history')
 		} else {
 			loadTodaysSessions()
 		}
@@ -79,6 +75,19 @@
 	{#if session.stage == 0}
 		<button data-umami-event="Session begin" onclick={handleBegin}>Begin</button
 		>
+	{:else if session.finished && !session.sessionSaved}
+		<div class="finished">
+			<p>Well done!</p>
+			<label>
+				<span>Notes (optional)</span>
+				<textarea
+					bind:value={session.note}
+					placeholder="How did it go?"
+					rows="3"
+				></textarea>
+			</label>
+			<button onclick={handleSave}>Save Session</button>
+		</div>
 	{:else}
 		{#key session.stage}
 			{#if isPulseStage}
@@ -100,8 +109,9 @@
 	section {
 		display: flex;
 		flex-direction: column;
-		justify-content: space-between;
+		justify-content: flex-start;
 		align-items: center;
+		flex: 1;
 
 		margin: 1rem;
 		text-align: center;
@@ -127,5 +137,46 @@
 	button:hover {
 		background-color: var(--surface-1);
 		color: var(--brand);
+	}
+
+	.finished {
+		display: flex;
+		flex-direction: column;
+		gap: var(--size-4);
+		width: 100%;
+
+		p {
+			font-size: var(--font-size-5);
+			color: var(--brand);
+		}
+
+		label {
+			display: flex;
+			flex-direction: column;
+			gap: var(--size-2);
+			text-align: left;
+
+			span {
+				font-size: var(--font-size-2);
+				color: var(--text-2);
+			}
+		}
+
+		textarea {
+			width: 100%;
+			padding: var(--size-2);
+			border: 1px solid var(--surface-4);
+			border-radius: var(--radius-2);
+			background: var(--surface-3);
+			color: var(--text-1);
+			font-family: var(--font-humanist);
+			font-size: var(--font-size-2);
+			resize: vertical;
+
+			&:focus {
+				outline: 2px solid var(--brand);
+				outline-offset: 2px;
+			}
+		}
 	}
 </style>

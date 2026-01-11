@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { type BreathingSession } from '$lib/breathingStorage'
 	import { SvelteDate } from 'svelte/reactivity'
-	import { AreaY, Line, Plot } from 'svelteplot'
+	import { AreaY, AxisX, Line, Plot } from 'svelteplot'
 
 	let { sessions }: { sessions: BreathingSession[] } = $props()
 
@@ -93,14 +93,41 @@
 	const allDays = $derived(
 		new Set(allPlotData.map((d) => d.date.toISOString().slice(0, 10))).size,
 	)
-	// const hasMoreData = $derived(allDays > DEFAULT_DAYS)
+	const hasMoreData = $derived(allDays > DEFAULT_DAYS)
+
+	const dateMarkers = $derived.by(() => {
+		const uniqueDates = [
+			...new Set(plotData.map((d) => d.date.toISOString().slice(0, 10))),
+		]
+			.map((d) => new Date(d))
+			.sort((a, b) => a.getTime() - b.getTime())
+
+		if (showAll) {
+			const seen = new Set<string>()
+			return uniqueDates.filter((d) => {
+				const key = `${d.getFullYear()}-${d.getMonth()}`
+				if (seen.has(key)) return false
+				seen.add(key)
+				return true
+			})
+		} else {
+			return uniqueDates.filter((_, i) => i % 2 === 0)
+		}
+	})
+
+	function formatDateLabel(d: unknown): string {
+		if (!(d instanceof Date)) return ''
+		if (showAll) {
+			return d.toLocaleDateString('en-NZ', { month: 'short' })
+		}
+		return String(d.getDate())
+	}
 </script>
 
 <p>
-	<!-- {#if !hasMoreData}
+	{#if !hasMoreData}
 		{sessions.length} sessions over {totalDays} days
-	{:else if showAll} -->
-	{#if showAll}
+	{:else if showAll}
 		<span>
 			{sessions.length} sessions over {totalDays} days
 		</span>
@@ -123,7 +150,8 @@
 	{:else}
 		<Plot
 			height={350}
-			x={{ axis: false, label: 'Date →' }}
+			marginBottom={25}
+			x={{ axis: false }}
 			y={{ grid: true, label: '↑ Seconds' }}
 		>
 			<AreaY
@@ -153,7 +181,26 @@
 				x="date"
 				y="avg"
 			/>
+			<AxisX
+				ticks={dateMarkers}
+				tickFormat={formatDateLabel}
+				tickSize={3}
+				stroke="var(--surface-4)"
+				strokeOpacity={0.3}
+				tickFontSize={10}
+				removeDuplicateTicks={true}
+			/>
 		</Plot>
+		<div class="legend">
+			<span class="legend-item">
+				<span class="swatch mcp"></span>
+				Morning CP
+			</span>
+			<span class="legend-item">
+				<span class="swatch cp"></span>
+				Control Pause
+			</span>
+		</div>
 	{/if}
 </section>
 
@@ -190,5 +237,29 @@
 		&:hover {
 			background: var(--surface-3);
 		}
+	}
+	.legend {
+		display: flex;
+		justify-content: center;
+		gap: var(--size-4);
+		font-size: var(--font-size-0);
+		color: var(--text-2);
+	}
+	.legend-item {
+		display: flex;
+		align-items: center;
+		gap: var(--size-1);
+	}
+	.swatch {
+		display: inline-block;
+		width: 1rem;
+		height: 3px;
+	}
+	.swatch.mcp {
+		background: var(--brand);
+	}
+	.swatch.cp {
+		background: var(--surface-4);
+		opacity: 0.5;
 	}
 </style>
