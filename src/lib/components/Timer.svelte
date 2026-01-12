@@ -9,8 +9,8 @@
 
 	let { autoStart = false, duration, onTimerDone }: Props = $props()
 
-	const countingUp = duration == 0
-	let count = $state(duration)
+	const countingUp = $derived(duration == 0)
+	let count = $derived(duration)
 	let intervalId: null | ReturnType<typeof setInterval> = $state(null)
 
 	function playDing() {
