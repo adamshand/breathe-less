@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment'
+	import { resolve } from '$app/paths'
 	import {
 		convertSessionsToCSV,
 		type CSVValidationResult,
@@ -309,7 +310,11 @@
 
 		{#if importComplete}
 			<div class="completion-actions">
-				<a href="/history" class="view-history-button">View History</a>
+				<a
+					href={resolve('/history')}
+					title="View History"
+					class="view-history-button">View History</a
+				>
 				<button onclick={resetImport} class="import-another-button">
 					Import Another File
 				</button>

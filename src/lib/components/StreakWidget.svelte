@@ -187,10 +187,6 @@
 		color: var(--text-2);
 	}
 
-	.stat.good {
-		color: var(--brand);
-	}
-
 	.days {
 		display: flex;
 		flex-wrap: wrap;

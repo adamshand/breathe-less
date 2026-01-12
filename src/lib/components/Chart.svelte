@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { type BreathingSession } from '$lib/breathingStorage'
-	import { SvelteDate } from 'svelte/reactivity'
+	import { SvelteDate, SvelteSet } from 'svelte/reactivity'
 	import { AreaY, AxisX, Line, Plot } from 'svelteplot'
 
 	let { sessions }: { sessions: BreathingSession[] } = $props()
@@ -103,7 +103,7 @@
 			.sort((a, b) => a.getTime() - b.getTime())
 
 		if (showAll) {
-			const seen = new Set<string>()
+			const seen = new SvelteSet<string>()
 			return uniqueDates.filter((d) => {
 				const key = `${d.getFullYear()}-${d.getMonth()}`
 				if (seen.has(key)) return false

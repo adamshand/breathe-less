@@ -16,6 +16,12 @@
 
 	let directEntryMode = $derived(settings.hasPulseTracker)
 
+	function playDing() {
+		session.ding?.play().catch(() => {
+			console.error('error with countdown timer start sound.')
+		})
+	}
+
 	function playDong() {
 		session.dong?.play().catch(() => {
 			console.error('error with countdown timer alert sound.')
@@ -26,6 +32,7 @@
 		session.initializeAudio()
 		session.running = true
 		count = 15
+		playDing()
 
 		intervalId = setInterval(() => {
 			count -= 1
