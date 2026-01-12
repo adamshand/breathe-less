@@ -109,7 +109,7 @@
 	section {
 		display: flex;
 		flex-direction: column;
-		justify-content: flex-start;
+		justify-content: space-between;
 		align-items: center;
 		flex: 1;
 

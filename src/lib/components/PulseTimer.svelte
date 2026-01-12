@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { session } from '$lib/session.svelte'
+	import { settings } from '$lib/settings.svelte'
 
 	interface Props {
 		onPulseRecorded?: (pulseValue: number) => void
@@ -12,6 +13,8 @@
 	let countingDown = $state(true)
 	let pulseInput = $state('')
 	let pulseInputElement = $state<HTMLInputElement>()
+
+	let directEntryMode = $derived(settings.hasPulseTracker)
 
 	function playDong() {
 		session.dong?.play().catch(() => {
@@ -50,7 +53,7 @@
 		const pulseCount = parseInt(inputValue)
 		if (isNaN(pulseCount) || pulseCount <= 0) return
 
-		const pulseBPM = pulseCount * 4
+		const pulseBPM = directEntryMode ? pulseCount : pulseCount * 4
 		session.running = false
 		onPulseRecorded?.(pulseBPM)
 	}
@@ -77,7 +80,25 @@
 </script>
 
 <section>
-	{#if countingDown}
+	{#if directEntryMode}
+		<p class="direct-instruction">Enter your pulse rate from your smartwatch</p>
+		<div id="pulse-input">
+			<input
+				bind:this={pulseInputElement}
+				bind:value={pulseInput}
+				type="number"
+				placeholder="Heart rate (BPM)"
+				onkeydown={handleKeydown}
+			/>
+			<button
+				onclick={handleSubmit}
+				disabled={!String(pulseInput).trim() ||
+					isNaN(parseInt(String(pulseInput)))}
+			>
+				Record Pulse
+			</button>
+		</div>
+	{:else if countingDown}
 		<div id="timer">
 			<time aria-live="polite">{count}</time>
 			<p>
@@ -92,9 +113,6 @@
 		{:else}
 			<button onclick={startCountdown}>Start Timer</button>
 		{/if}
-		<!-- 
-		
-		-->
 	{:else}
 		<div id="pulse-input">
 			<input
@@ -117,11 +135,13 @@
 
 <style>
 	section {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
 		width: 100%;
-		flex: 1;
+	}
+
+	.direct-instruction {
+		color: var(--text-2);
+		font-size: var(--font-size-2);
+		margin-bottom: var(--size-4);
 	}
 
 	#timer {

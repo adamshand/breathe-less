@@ -7,6 +7,7 @@
 		validateAndParseCSV,
 	} from '$lib'
 	import { breathingStorage } from '$lib/breathingStorage'
+	import { settings } from '$lib/settings.svelte'
 
 	// Export state
 	let exporting = $state(false)
@@ -178,6 +179,16 @@
 <section>
 	<h1>Settings</h1>
 
+	<div class="preferences-section">
+		<label class="toggle-setting">
+			<input type="checkbox" bind:checked={settings.hasPulseTracker} />
+			<span class="toggle-label">I have a pulse tracker</span>
+		</label>
+		<p class="setting-description">
+			Skips timer so you can immediately enter pulse..
+		</p>
+	</div>
+
 	<div class="export-section">
 		<h2>Export Data</h2>
 
@@ -317,6 +328,39 @@
 		color: inherit;
 		margin-bottom: var(--size-2);
 		font-size: var(--font-size-3);
+	}
+
+	.preferences-section {
+		border-bottom: 1px solid var(--surface-4);
+		padding-bottom: var(--size-5);
+		margin-bottom: var(--size-4);
+	}
+
+	.toggle-setting {
+		display: flex;
+		align-items: center;
+		gap: var(--size-3);
+		cursor: pointer;
+		margin-bottom: var(--size-2);
+	}
+
+	.toggle-setting input[type='checkbox'] {
+		width: var(--size-5);
+		height: var(--size-5);
+		accent-color: var(--brand);
+		cursor: pointer;
+	}
+
+	.toggle-label {
+		font-size: var(--font-size-3);
+		font-weight: var(--font-weight-5);
+	}
+
+	.setting-description {
+		color: var(--text-2);
+		font-size: var(--font-size-2);
+		margin-left: calc(var(--size-5) + var(--size-3));
+		margin-bottom: 0;
 	}
 
 	.export-section {

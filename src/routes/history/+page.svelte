@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths'
 	import {
 		type BreathingSession,
 		breathingStorage,
@@ -68,7 +69,7 @@
 	{:else if allSessions.length === 0}
 		<div class="empty">
 			<p>No sessions recorded yet.</p>
-			<a href="/">Start your first session.</a>
+			<a href={resolve('/')}>Start your first session.</a>
 		</div>
 	{:else}
 		<Chart sessions={allSessions} />
