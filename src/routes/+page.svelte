@@ -52,6 +52,11 @@
 <article>
 	<StreakWidget sessions={allSessions} />
 
+	<p>
+		The information on this website is not sufficient to safely or effectively
+		learn the Buteyko Method. Please seek professional guidance.
+	</p>
+
 	<div class="exercise-grid">
 		{#each exercises as exercise (exercise.type)}
 			<a
@@ -90,6 +95,12 @@
 </article>
 
 <style>
+	p {
+		font-size: var(--font-size-2);
+		color: var(--text-2);
+		line-height: 1.6;
+		margin: var(--size-4) 0;
+	}
 	article {
 		padding: var(--size-4);
 		max-width: 800px;
