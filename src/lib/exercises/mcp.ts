@@ -6,8 +6,9 @@ const intro: Stage = {
 	autoStart: false,
 	duration: 0,
 	instructions: `
-	<p>Measure your Control Pause immediately after waking, before getting out of bed, moving around, or talking.</p>
-	<p>This is your baseline indicator of progress.</p>`,
+	<p>Measure your control pause immediately after waking and before talking or getting out of bed. </p>
+  <p>Ideally, you should do the test in the same body position in which you woke up.</p>
+	<p>Learn more at <a href="https://www.normalbreathing.com/learn-why-morning-cp/">normalbreathing.com</a>.</p>`,
 	logged: false,
 	name: 'Morning Control Pause',
 	shortName: 'start',
@@ -18,7 +19,8 @@ const cp: Stage = {
 	duration: 0,
 	instructions: `
 	<p>After a normal inhale and exhale, hold your breath and pinch your nose shut.</p>
-	<p>Release at the first sign of discomfort.</p>`,
+	<p>At the first gentle urge to breathe, stop the timer and inhale.</p>
+	<p>If you feel any stress, discomfort, or have the urge to breath more deeply this means you have exceeded your control pause.</p>`,
 	logged: true,
 	name: 'Control Pause',
 	shortName: 'cp',
@@ -53,10 +55,11 @@ function mapLogToSession(log: number[], date: Date): BreathingSession {
 
 export const mcpExercise: ExerciseConfig = {
 	description:
-		'Measure your Control Pause first thing in the morning to track your baseline progress.',
+		'Your morning control pause is one of the best ways to track your progress.',
 	layout: mcpLayout,
 	mapLogToSession,
-	name: 'Morning CP',
+	name: 'Morning Control Pause',
 	shortName: 'MCP',
 	type: 'mcp',
 }
+

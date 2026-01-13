@@ -6,11 +6,14 @@ const intro: Stage = {
 	autoStart: false,
 	duration: 0,
 	instructions: `
-  <p>This exercise should be performed four times a day. Before breakfast, lunch, dinner and bed.</p> 
-  <p>Do not practice for two hours after a meal or more than four times a day.</p> 
-  <p>Learn more about this exercise by <a href="/instructions">reading the instructions</a>, 
-	or by taking a free five-day beginners course from <a href="https://www.learnbuteykoonline.net/" 
-	target="_blank">Learn Buteyko Online</a>.</p>`,
+  <p>This exercise should be performed four times a day, before breakfast, lunch, dinner and bed.</p> 
+  <p>Do not practice for two hours after a meal.</p> 
+  <p>Learn more about this exercise by <a href="/instructions">reading the instructions</a> 
+	or by taking a course from <a href="https://www.learnbuteykoonline.net/" 
+	target="_blank">Learn Buteyko Online</a>.</p>
+	<p style="margin: 2rem 1rem; padding: 1rem; border: 1px solid var(--brand); border-radius: 9px;">
+	This exercise did not work well for me. I suggest most people begin with the 
+	<a href="/diminished">diminished breathing</a> exercise.</p>`,
 	logged: false,
 	name: 'Classical Buteyko Exercise',
 	shortName: 'start',
@@ -150,7 +153,7 @@ function mapLogToSession(log: number[], date: Date): BreathingSession {
 
 export const classicalExercise: ExerciseConfig = {
 	description:
-		'The full Buteyko Maximum Pause exercise with three breath holds of increasing intensity.',
+		'A strong exercise that uses multiple breath holds of increasing intensity.',
 	layout: classicalLayout,
 	mapLogToSession,
 	name: 'Classical Buteyko',

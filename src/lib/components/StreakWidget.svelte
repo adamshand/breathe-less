@@ -8,12 +8,13 @@
 
 	let { sessions }: Props = $props()
 
-	const DAYS_TO_SHOW = 14
+	const MAX_DAYS = 14
 	const TARGET_SESSIONS = 3
 
 	interface DayData {
 		count: number
 		date: Date
+		isFuture: boolean
 		isToday: boolean
 	}
 
@@ -32,6 +33,21 @@
 			counts.set(dateKey, (counts.get(dateKey) || 0) + 1)
 		}
 		return counts
+	}
+
+	function getFirstSessionDate(sessions: BreathingSession[]): Date | null {
+		if (sessions.length === 0) return null
+		const earliest = sessions.reduce((min, s) =>
+			new Date(s.date) < new Date(min.date) ? s : min,
+		)
+		const date = new Date(earliest.date)
+		date.setHours(0, 0, 0, 0)
+		return date
+	}
+
+	function daysBetween(date1: Date, date2: Date): number {
+		const msPerDay = 24 * 60 * 60 * 1000
+		return Math.floor((date2.getTime() - date1.getTime()) / msPerDay)
 	}
 
 	function calculateStreaks(sessionsByDate: Map<string, number>): {
@@ -98,19 +114,43 @@
 		return { currentStreak, goodStreak, streakSessions }
 	}
 
-	function generateDayData(sessionsByDate: Map<string, number>): DayData[] {
+	function generateDayData(
+		sessionsByDate: Map<string, number>,
+		firstSessionDate: Date | null,
+	): DayData[] {
 		const today = new Date()
 		today.setHours(0, 0, 0, 0)
 		const days: DayData[] = []
 
-		for (let i = DAYS_TO_SHOW - 1; i >= 0; i--) {
-			const date = new Date(today)
-			date.setDate(date.getDate() - i)
+		// Determine the start date for the 14-day window
+		// Growing mode: start from first session date, pad with future days
+		// Rolling mode: start from 13 days ago (today is rightmost)
+		// No sessions: start from today, pad with future days
+		const startDate = new Date(today)
+		const daysSinceFirst = firstSessionDate
+			? daysBetween(firstSessionDate, today)
+			: 0
+
+		if (daysSinceFirst >= MAX_DAYS - 1) {
+			// Rolling mode: show last 14 days ending at today
+			startDate.setDate(today.getDate() - (MAX_DAYS - 1))
+		} else if (firstSessionDate) {
+			// Growing mode: start from first session date
+			startDate.setTime(firstSessionDate.getTime())
+		}
+		// else: no sessions, startDate is today
+
+		for (let i = 0; i < MAX_DAYS; i++) {
+			const date = new Date(startDate)
+			date.setDate(startDate.getDate() + i)
 			const dateKey = date.toDateString()
+			const isFuture = date > today
+			const isToday = date.toDateString() === today.toDateString()
 			days.push({
-				count: sessionsByDate.get(dateKey) || 0,
+				count: isFuture ? 0 : sessionsByDate.get(dateKey) || 0,
 				date,
-				isToday: i === 0,
+				isFuture,
+				isToday,
 			})
 		}
 
@@ -119,8 +159,11 @@
 
 	const qualifyingSessions = $derived(getQualifyingSessions(sessions))
 	const sessionsByDate = $derived(groupByDate(qualifyingSessions))
+	const firstSessionDate = $derived(getFirstSessionDate(qualifyingSessions))
 	const streaks = $derived(calculateStreaks(sessionsByDate))
-	const days = $derived(generateDayData(sessionsByDate))
+	const days = $derived(generateDayData(sessionsByDate, firstSessionDate))
+	const firstRowDays = $derived(days.slice(0, 7))
+	const secondRowDays = $derived(days.slice(7))
 	const avgPerDay = $derived(
 		streaks.currentStreak > 0
 			? (streaks.streakSessions / streaks.currentStreak).toFixed(1)
@@ -143,23 +186,44 @@
 		{/if}
 	</div>
 	<div class="days">
-		{#each days as day (day.date.toISOString())}
-			<div
-				class="day"
-				class:missed={day.count === 0 && !day.isToday}
-				class:low={day.count > 0 && day.count < TARGET_SESSIONS}
-				class:good={day.count >= TARGET_SESSIONS}
-				class:today={day.isToday && day.count === 0}
-			>
-				{#if day.count > 0}
-					<span class="count">{day.count}</span>
-				{/if}
-			</div>
-		{/each}
+		<div class="row">
+			{#each firstRowDays as day (day.date.toISOString())}
+				<div
+					class="day"
+					class:missed={(day.count === 0 && !day.isToday) || day.isFuture}
+					class:low={day.count > 0 && day.count < TARGET_SESSIONS}
+					class:good={day.count >= TARGET_SESSIONS}
+					class:today={day.isToday && day.count === 0}
+				>
+					{#if day.count > 0}
+						<span class="count">{day.count}</span>
+					{:else if !day.isFuture && !day.isToday}
+						<span class="count">0</span>
+					{/if}
+				</div>
+			{/each}
+		</div>
+		<div class="row">
+			{#each secondRowDays as day (day.date.toISOString())}
+				<div
+					class="day"
+					class:missed={(day.count === 0 && !day.isToday) || day.isFuture}
+					class:low={day.count > 0 && day.count < TARGET_SESSIONS}
+					class:good={day.count >= TARGET_SESSIONS}
+					class:today={day.isToday && day.count === 0}
+				>
+					{#if day.count > 0}
+						<span class="count">{day.count}</span>
+					{:else if !day.isFuture && !day.isToday}
+						<span class="count">0</span>
+					{/if}
+				</div>
+			{/each}
+		</div>
 	</div>
 	<center class="stat">
-		{streaks.goodStreak} day optimal practice streak</center
-	>
+		{streaks.goodStreak} day optimal practice streak
+	</center>
 </div>
 
 <style>
@@ -189,26 +253,32 @@
 
 	.days {
 		display: flex;
-		flex-wrap: wrap;
-		justify-content: space-between;
+		flex-direction: column;
 		gap: var(--size-1);
 	}
 
+	.row {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		gap: var(--size-1);
+		width: 100%;
+	}
+
 	.day {
-		width: var(--size-5);
-		height: var(--size-5);
+		aspect-ratio: 1;
+		width: 100%;
 		border-radius: var(--radius-round);
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		font-size: var(--font-size-0);
+		font-size: var(--font-size-2);
 		font-weight: var(--font-weight-5);
-		flex-shrink: 0;
 	}
 
 	.day.missed {
 		background: var(--surface-3);
 		border: 1px solid var(--surface-4);
+		color: var(--brand);
 	}
 
 	.day.today {

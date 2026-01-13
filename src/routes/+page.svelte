@@ -62,7 +62,7 @@
 				<div class="card-content">
 					<div class="card-text">
 						<h2>{exercise.name}</h2>
-						<p>{exercise.description}</p>
+						<p>{@html exercise.description}</p>
 						{#if !exercise.available}
 							<span class="coming-soon">Coming Soon</span>
 						{/if}

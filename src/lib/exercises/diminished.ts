@@ -6,8 +6,10 @@ const intro: Stage = {
 	autoStart: false,
 	duration: 0,
 	instructions: `
-	<p>The Diminished Breathing exercise is a gentler variation of the Classical Buteyko exercise.</p>
-	<p>It focuses on reduced breathing without maximum pauses, making it suitable for those with lower control pauses.</p>`,
+	<p>This exercise should be performed at least three times a day. Do not practice for two hours after a meal.</p> 
+	<p>This is a gentle exercise which teaches you to reduce your breathing though relaxation.</p>
+	<p>Learn more about this exercise by <a href="/instructions">reading the instructions</a> or <a href="https://www.breathingclinics.nz/practitioner-directory">taking a course</a>.</p>
+	`,
 	logged: false,
 	name: 'Diminished Breathing Exercise',
 	shortName: 'start',
@@ -17,17 +19,20 @@ const relaxStart: Stage = {
 	autoStart: true,
 	duration: 180,
 	instructions: `
-	<p>Find a comfortable position and allow your body to relax.</p>
-	<p>Breathe naturally and let go of any tension.</p>`,
+	<p>Find a quiet spot with fresh air and allow your pulse and nervous system to settle.</p>
+	<p>Sit with good posture, back straight, belly relaxed, knees slightly below your hips, and feet flat on the floor.</p>`,
 	logged: false,
-	name: 'Relax',
-	shortName: 'relax',
+	name: 'Settle',
+	shortName: 'settle',
 }
 
 const pulse: Stage = {
 	autoStart: false,
 	duration: 15,
-	instructions: `<p>Find your pulse in your neck or wrist. Count the number of heartbeats during the timer.</p>`,
+	instructions: `
+	<p>Find your pulse in your wrist and start the timer. Count the number of heartbeats during the timer.</p>
+	<p>If you have a device which tracks your pulse, you can disable the timer in <a href="/settings">Settings</a>.</p>
+	`,
 	logged: true,
 	name: 'Pulse',
 	shortName: 'p',
@@ -38,7 +43,10 @@ const cp: Stage = {
 	duration: 0,
 	instructions: `
 	<p>After a normal inhale and exhale, hold your breath and pinch your nose shut.</p>
-	<p>Release the hold at the first sign of discomfort.</p>`,
+	<p>At the first gentle urge to breathe, stop the timer and inhale.</p>
+	<p>If you feel any stress, discomfort, or have the desire to breath more deeply 
+	this means you have exceeded your control pause.</p>
+	`,
 	logged: true,
 	name: 'Control Pause',
 	shortName: 'cp',
@@ -48,33 +56,41 @@ const diminishedBreathing: Stage = {
 	autoStart: true,
 	duration: 300,
 	instructions: `
-	<p>Practice reduced breathing by taking smaller, gentler breaths.</p>
-	<p>Maintain a mild air hunger throughout.</p>`,
+<p>Slowly relax all the muscles in your body. Starting at the top of your body and working your way down to your feet.</p>  
+<p>As you relax you will notice that your breathing naturally reduces.  There is no need to control your breath.</p>
+<p>Try and find a level of light air hunger that you can maintain for the entire five minutes.</p>
+	`,
 	logged: false,
 	name: 'Diminished Breathing',
 	shortName: 'db',
 }
 
-const middleCp: Stage = {
+const ep: Stage = {
 	autoStart: false,
 	duration: 0,
 	instructions: `
-	<p>After a normal inhale and exhale, hold your breath and pinch your nose shut.</p>
-	<p>Release the hold at the first sign of discomfort.</p>`,
+	<p>Without taking a break, pinch  your nose and hold your breath.</p>
+<p>If your control pause is:</p>
+<p>… above 20s, hold until moderate air hunger.
+<br>… above  15s, hold until the first urge to breathe.
+<br>… below 15s, take a three minute break.</p>
+	`,
 	logged: true,
-	name: 'Control Pause',
-	shortName: 'cp',
+	name: 'Extended Pause',
+	shortName: 'ep',
 }
 
-const relaxEnd: Stage = {
+const groundAndOrient: Stage = {
 	autoStart: true,
 	duration: 180,
 	instructions: `
-	<p>Allow your breathing to return to normal.</p>
-	<p>Rest and observe how you feel.</p>`,
+	<p>Allow the air hunger to fade and your breathing to settle. You feel relaxed and calm.</p>
+<p>It can help to imagine yourself grounded down and into the earth.</p>
+<p>Pay attention to your surroundings, taking note of any features, and reorienting to your environment.</p>
+	`,
 	logged: false,
-	name: 'Relax',
-	shortName: 'relax',
+	name: 'Ground & Orient',
+	shortName: 'gao',
 }
 
 const finished: Stage = {
@@ -93,9 +109,9 @@ export const diminishedLayout: Stage[] = [
 	pulse,
 	cp,
 	diminishedBreathing,
-	middleCp,
+	ep,
 	{ ...diminishedBreathing },
-	relaxEnd,
+	groundAndOrient,
 	{ ...pulse },
 	{ ...cp },
 	finished,
@@ -119,7 +135,7 @@ function mapLogToSession(log: number[], date: Date): BreathingSession {
 
 export const diminishedExercise: ExerciseConfig = {
 	description:
-		'A gentler variation focusing on reduced breathing without maximum pauses.',
+		'A gentle exercise that uses relaxation to reduce your breathing.',
 	layout: diminishedLayout,
 	mapLogToSession,
 	name: 'Diminished Breathing',
