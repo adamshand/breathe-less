@@ -1,4 +1,4 @@
-import type { BreathingSession } from '$lib/breathingStorage'
+import { type BreathingSession, getLocalDateTime } from '$lib/breathingStorage'
 
 import type { ExerciseConfig, Stage } from './types'
 
@@ -38,18 +38,22 @@ const finished: Stage = {
 export const mcpLayout: Stage[] = [intro, cp, finished]
 
 function mapLogToSession(log: number[], date: Date): BreathingSession {
+	const local = getLocalDateTime(date)
 	return {
 		controlPause1: log[0] ?? 0,
 		controlPause2: 0,
 		date,
 		exerciseType: 'mcp',
 		id: date.getTime().toString(),
+		localDate: local.localDate,
+		localTime: local.localTime,
 		maxPause1: 0,
 		maxPause2: 0,
 		maxPause3: 0,
 		note: '',
 		pulse1: 0,
 		pulse2: 0,
+		timezone: local.timezone,
 	}
 }
 
@@ -62,4 +66,3 @@ export const mcpExercise: ExerciseConfig = {
 	shortName: 'MCP',
 	type: 'mcp',
 }
-

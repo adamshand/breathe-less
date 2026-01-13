@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { BreathingSession } from '$lib/breathingStorage'
 
+	import { convert24to12 } from '$lib/index'
 	import {
 		CheckIcon,
 		ClipboardCopyIcon,
@@ -54,7 +55,7 @@
 
 <section>
 	<h3>
-		{new Date(date).toLocaleDateString('en-NZ', {
+		{new Date(date + 'T12:00:00').toLocaleDateString('en-NZ', {
 			day: 'numeric',
 			month: 'long',
 			weekday: 'long',
@@ -96,11 +97,7 @@
 							</span>
 						</td>
 						<td>
-							{new Date(session.date).toLocaleTimeString('en-NZ', {
-								hour: '2-digit',
-								hour12: true,
-								minute: '2-digit',
-							})}
+							{convert24to12(session.localTime)}
 						</td>
 						<td>{displayValue(session.pulse1)}</td>
 						<td>{displayValue(session.controlPause1)}</td>

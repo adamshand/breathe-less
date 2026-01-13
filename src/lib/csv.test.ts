@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
+import type { BreathingSession } from './index'
+
 import {
 	convertSessionsToCSV,
 	EXPECTED_CSV_HEADERS,
+	localTimeToUTC,
 	parseCSV,
 	parseCSVRow,
 	validateAndParseCSV,
 	validateCSVHeaders,
 } from './index'
-import type { BreathingSession } from './index'
 
 describe('parseCSV', () => {
 	it('parses simple CSV without quotes', () => {
@@ -68,10 +70,32 @@ describe('parseCSV', () => {
 	})
 })
 
+describe('localTimeToUTC', () => {
+	it('converts local time in browser timezone', () => {
+		const result = localTimeToUTC('2026-01-13', '08:30')
+		expect(result).toBeInstanceOf(Date)
+		expect(result.getTime()).not.toBeNaN()
+	})
+
+	it('handles midnight correctly', () => {
+		const result = localTimeToUTC('2026-01-13', '00:00')
+		expect(result).toBeInstanceOf(Date)
+		expect(result.getTime()).not.toBeNaN()
+	})
+
+	it('handles end of day correctly', () => {
+		const result = localTimeToUTC('2026-01-13', '23:59')
+		expect(result).toBeInstanceOf(Date)
+		expect(result.getTime()).not.toBeNaN()
+	})
+})
+
 describe('parseCSVRow', () => {
-	it('parses current format with mcp exercise type', () => {
-		const csvText = `DateTime,Exercise Type,Control Pause 1,Max Pause 1,Max Pause 2,Max Pause 3,Control Pause 2,Note,Pulse 1,Pulse 2
-2026-01-08T18:16:19.548Z,mcp,18,0,0,0,0,,0,0`
+	const headers = EXPECTED_CSV_HEADERS.join(',')
+
+	it('parses row with UTC datetime (ignores local fields)', () => {
+		const csvText = `${headers}
+2026-01-08T18:16:19.548Z,2026-01-08,18:16,UTC,mcp,0,0,18,0,0,0,0,`
 
 		const rows = parseCSV(csvText)
 		const result = parseCSVRow(rows[1], 0)
@@ -79,11 +103,12 @@ describe('parseCSVRow', () => {
 		expect(result.error).toBeNull()
 		expect(result.session?.exerciseType).toBe('mcp')
 		expect(result.session?.controlPause1).toBe(18)
+		expect(result.session?.date.toISOString()).toBe('2026-01-08T18:16:19.548Z')
 	})
 
-	it('parses current format with classical exercise type', () => {
-		const csvText = `DateTime,Exercise Type,Control Pause 1,Max Pause 1,Max Pause 2,Max Pause 3,Control Pause 2,Note,Pulse 1,Pulse 2
-2026-01-08T18:16:19.548Z,classical,20,30,35,40,25,test note,60,58`
+	it('parses row with local date/time when UTC is empty', () => {
+		const csvText = `${headers}
+,2026-01-08,08:30,Pacific/Auckland,classical,60,58,20,25,30,35,40,test note`
 
 		const rows = parseCSV(csvText)
 		const result = parseCSVRow(rows[1], 0)
@@ -91,64 +116,70 @@ describe('parseCSVRow', () => {
 		expect(result.error).toBeNull()
 		expect(result.session?.exerciseType).toBe('classical')
 		expect(result.session?.controlPause1).toBe(20)
-		expect(result.session?.maxPause1).toBe(30)
-		expect(result.session?.note).toBe('test note')
+		expect(result.session?.localDate).toBe('2026-01-08')
+		expect(result.session?.localTime).toBe('08:30')
+		expect(result.session?.timezone).toBe('Pacific/Auckland')
 	})
 
-	it('parses current format with diminished exercise type', () => {
-		const csvText = `DateTime,Exercise Type,Control Pause 1,Max Pause 1,Max Pause 2,Max Pause 3,Control Pause 2,Note,Pulse 1,Pulse 2
-2026-01-08T18:16:19.548Z,diminished,22,0,0,0,24,,65,62`
+	it('uses browser timezone when timezone column is empty', () => {
+		const csvText = `${headers}
+,2026-01-08,08:30,,classical,60,58,20,25,30,35,40,`
 
 		const rows = parseCSV(csvText)
 		const result = parseCSVRow(rows[1], 0)
 
 		expect(result.error).toBeNull()
-		expect(result.session?.exerciseType).toBe('diminished')
-		expect(result.session?.controlPause1).toBe(22)
-		expect(result.session?.controlPause2).toBe(24)
+		expect(result.session?.localDate).toBe('2026-01-08')
+		expect(result.session?.localTime).toBe('08:30')
+		// Timezone should be set to browser's timezone
+		expect(result.session?.timezone).toBeTruthy()
 	})
 
-	it('parses legacy v2 format (no exercise type column)', () => {
-		// Legacy v2: DateTime, CP1, MP1, MP2, MP3, CP2, Note, PersonalBest, P1, P2
-		const csvText = `DateTime,Control Pause 1,Max Pause 1,Max Pause 2,Max Pause 3,Control Pause 2,Note,Personal Best,Pulse 1,Pulse 2
-2026-01-08T18:16:19.548Z,20,30,35,40,25,test note,40,60,58`
+	it('returns error when both UTC and local date/time are empty', () => {
+		const csvText = `${headers}
+,,,,classical,60,58,20,25,30,35,40,test`
+
+		const rows = parseCSV(csvText)
+		const result = parseCSVRow(rows[1], 0)
+
+		expect(result.error).toContain('Missing both UTC and LocalDate/LocalTime')
+		expect(result.session).toBeNull()
+	})
+
+	it('returns error for invalid UTC datetime', () => {
+		const csvText = `${headers}
+invalid-date,2026-01-08,08:30,UTC,classical,60,58,20,25,30,35,40,`
+
+		const rows = parseCSV(csvText)
+		const result = parseCSVRow(rows[1], 0)
+
+		expect(result.error).toContain('Invalid UTC datetime')
+		expect(result.session).toBeNull()
+	})
+
+	it('parses all exercise types correctly', () => {
+		const types = ['classical', 'diminished', 'mcp'] as const
+		for (const type of types) {
+			const csvText = `${headers}
+2026-01-08T18:16:19.548Z,2026-01-08,18:16,UTC,${type},0,0,20,25,30,35,40,`
+
+			const rows = parseCSV(csvText)
+			const result = parseCSVRow(rows[1], 0)
+
+			expect(result.error).toBeNull()
+			expect(result.session?.exerciseType).toBe(type)
+		}
+	})
+
+	it('handles case-insensitive exercise types', () => {
+		const csvText = `${headers}
+2026-01-08T18:16:19.548Z,2026-01-08,18:16,UTC,CLASSICAL,60,58,20,25,30,35,40,`
 
 		const rows = parseCSV(csvText)
 		const result = parseCSVRow(rows[1], 0)
 
 		expect(result.error).toBeNull()
 		expect(result.session?.exerciseType).toBe('classical')
-		expect(result.session?.controlPause1).toBe(20)
-		expect(result.session?.maxPause1).toBe(30)
-		expect(result.session?.maxPause2).toBe(35)
-		expect(result.session?.maxPause3).toBe(40)
-		expect(result.session?.controlPause2).toBe(25)
-		expect(result.session?.note).toBe('test note')
-		expect(result.session?.pulse1).toBe(60)
-		expect(result.session?.pulse2).toBe(58)
-	})
-
-	it('parses legacy v1 format (separate date and time columns)', () => {
-		// Legacy v1: Date, Time, CP1, MP1, MP2, MP3, CP2, Note, PersonalBest, P1, P2
-		const row = [
-			'2026-01-08',
-			'18:16:19',
-			'20',
-			'30',
-			'35',
-			'40',
-			'25',
-			'test note',
-			'45',
-			'60',
-			'58',
-		]
-		const result = parseCSVRow(row, 0)
-
-		expect(result.error).toBeNull()
-		expect(result.session?.exerciseType).toBe('classical')
-		expect(result.session?.controlPause1).toBe(20)
-		expect(result.session?.pulse1).toBe(60)
 	})
 
 	it('returns error for incorrect column count', () => {
@@ -156,80 +187,51 @@ describe('parseCSVRow', () => {
 		const result = parseCSVRow(row, 5)
 
 		expect(result.error).toContain('Row 6')
-		expect(result.error).toContain('Expected 10 columns')
+		expect(result.error).toContain(
+			`Expected ${EXPECTED_CSV_HEADERS.length} columns`,
+		)
 		expect(result.session).toBeNull()
 	})
 
 	it('handles non-numeric values as 0', () => {
-		const csvText = `DateTime,Exercise Type,Control Pause 1,Max Pause 1,Max Pause 2,Max Pause 3,Control Pause 2,Note,Pulse 1,Pulse 2
-2026-01-08T18:16:19.548Z,classical,abc,30,35,40,25,test note,60,58`
+		const csvText = `${headers}
+2026-01-08T18:16:19.548Z,2026-01-08,18:16,UTC,classical,abc,58,abc,25,30,35,40,`
 
 		const rows = parseCSV(csvText)
 		const result = parseCSVRow(rows[1], 0)
 
 		expect(result.error).toBeNull()
+		expect(result.session?.pulse1).toBe(0)
 		expect(result.session?.controlPause1).toBe(0)
 	})
 
 	it('handles empty numeric values as 0', () => {
-		const csvText = `DateTime,Exercise Type,Control Pause 1,Max Pause 1,Max Pause 2,Max Pause 3,Control Pause 2,Note,Pulse 1,Pulse 2
-2026-01-08T18:16:19.548Z,classical,,30,35,40,25,test note,60,58`
+		const csvText = `${headers}
+2026-01-08T18:16:19.548Z,2026-01-08,18:16,UTC,classical,,,,,,,,`
 
 		const rows = parseCSV(csvText)
 		const result = parseCSVRow(rows[1], 0)
 
 		expect(result.error).toBeNull()
+		expect(result.session?.pulse1).toBe(0)
 		expect(result.session?.controlPause1).toBe(0)
 	})
 
-	it('handles case-insensitive exercise types', () => {
-		const csvText = `DateTime,Exercise Type,Control Pause 1,Max Pause 1,Max Pause 2,Max Pause 3,Control Pause 2,Note,Pulse 1,Pulse 2
-2026-01-08T18:16:19.548Z,CLASSICAL,20,30,35,40,25,,60,58`
+	it('parses note correctly', () => {
+		const csvText = `${headers}
+2026-01-08T18:16:19.548Z,2026-01-08,18:16,UTC,classical,60,58,20,25,30,35,40,my test note`
 
 		const rows = parseCSV(csvText)
 		const result = parseCSVRow(rows[1], 0)
 
 		expect(result.error).toBeNull()
-		expect(result.session?.exerciseType).toBe('classical')
+		expect(result.session?.note).toBe('my test note')
 	})
 })
 
 describe('validateCSVHeaders', () => {
-	it('validates current format headers', () => {
+	it('validates correct headers', () => {
 		expect(validateCSVHeaders(EXPECTED_CSV_HEADERS)).toBe(true)
-	})
-
-	it('validates legacy v1 headers', () => {
-		const legacyHeaders = [
-			'Date',
-			'Time',
-			'Control Pause 1',
-			'Max Pause 1',
-			'Max Pause 2',
-			'Max Pause 3',
-			'Control Pause 2',
-			'Note',
-			'Personal Best MP3',
-			'Pulse 1',
-			'Pulse 2',
-		]
-		expect(validateCSVHeaders(legacyHeaders)).toBe(true)
-	})
-
-	it('validates legacy v2 headers', () => {
-		const legacyV2Headers = [
-			'DateTime',
-			'Control Pause 1',
-			'Max Pause 1',
-			'Max Pause 2',
-			'Max Pause 3',
-			'Control Pause 2',
-			'Note',
-			'Personal Best MP3',
-			'Pulse 1',
-			'Pulse 2',
-		]
-		expect(validateCSVHeaders(legacyV2Headers)).toBe(true)
 	})
 
 	it('rejects invalid headers', () => {
@@ -241,16 +243,34 @@ describe('validateCSVHeaders', () => {
 	})
 
 	it('rejects headers with wrong column count', () => {
-		const wrongCount = ['DateTime', 'Exercise Type', 'Control Pause 1']
+		const wrongCount = ['UTC', 'LocalDate', 'LocalTime']
 		expect(validateCSVHeaders(wrongCount)).toBe(false)
+	})
+
+	it('rejects legacy format headers', () => {
+		const legacyHeaders = [
+			'DateTime',
+			'Exercise Type',
+			'Control Pause 1',
+			'Max Pause 1',
+			'Max Pause 2',
+			'Max Pause 3',
+			'Control Pause 2',
+			'Note',
+			'Pulse 1',
+			'Pulse 2',
+		]
+		expect(validateCSVHeaders(legacyHeaders)).toBe(false)
 	})
 })
 
 describe('validateAndParseCSV', () => {
-	it('parses valid CSV with current format', () => {
-		const csv = `DateTime,Exercise Type,Control Pause 1,Max Pause 1,Max Pause 2,Max Pause 3,Control Pause 2,Note,Pulse 1,Pulse 2
-2026-01-08T18:16:19.548Z,classical,20,30,35,40,25,test,60,58
-2026-01-09T10:00:00.000Z,mcp,18,0,0,0,0,,0,0`
+	const headers = EXPECTED_CSV_HEADERS.join(',')
+
+	it('parses valid CSV with UTC datetime', () => {
+		const csv = `${headers}
+2026-01-08T18:16:19.548Z,2026-01-08,18:16,UTC,classical,60,58,20,25,30,35,40,test
+2026-01-09T10:00:00.000Z,2026-01-09,10:00,UTC,mcp,0,0,18,0,0,0,0,`
 
 		const result = validateAndParseCSV(csv)
 
@@ -258,6 +278,18 @@ describe('validateAndParseCSV', () => {
 		expect(result.sessions).toHaveLength(2)
 		expect(result.errors).toHaveLength(0)
 		expect(result.skippedRows).toBe(0)
+	})
+
+	it('parses valid CSV with local date/time only', () => {
+		const csv = `${headers}
+,2026-01-08,08:30,Pacific/Auckland,classical,60,58,20,25,30,35,40,test`
+
+		const result = validateAndParseCSV(csv)
+
+		expect(result.isValid).toBe(true)
+		expect(result.sessions).toHaveLength(1)
+		expect(result.sessions[0].localDate).toBe('2026-01-08')
+		expect(result.sessions[0].localTime).toBe('08:30')
 	})
 
 	it('returns error for empty CSV', () => {
@@ -277,10 +309,10 @@ describe('validateAndParseCSV', () => {
 	})
 
 	it('handles mixed valid and invalid rows', () => {
-		const csv = `DateTime,Exercise Type,Control Pause 1,Max Pause 1,Max Pause 2,Max Pause 3,Control Pause 2,Note,Pulse 1,Pulse 2
-2026-01-08T18:16:19.548Z,classical,20,30,35,40,25,test,60,58
+		const csv = `${headers}
+2026-01-08T18:16:19.548Z,2026-01-08,18:16,UTC,classical,60,58,20,25,30,35,40,test
 bad,row
-2026-01-09T10:00:00.000Z,mcp,18,0,0,0,0,,0,0`
+2026-01-09T10:00:00.000Z,2026-01-09,10:00,UTC,mcp,0,0,18,0,0,0,0,`
 
 		const result = validateAndParseCSV(csv)
 
@@ -291,7 +323,7 @@ bad,row
 	})
 
 	it('is valid with headers only (no data rows)', () => {
-		const csv = `DateTime,Exercise Type,Control Pause 1,Max Pause 1,Max Pause 2,Max Pause 3,Control Pause 2,Note,Pulse 1,Pulse 2`
+		const csv = headers
 
 		const result = validateAndParseCSV(csv)
 
@@ -309,12 +341,15 @@ describe('convertSessionsToCSV', () => {
 				date: new Date('2026-01-08T18:16:19.548Z'),
 				exerciseType: 'classical',
 				id: '123',
+				localDate: '2026-01-08',
+				localTime: '18:16',
 				maxPause1: 30,
 				maxPause2: 35,
 				maxPause3: 40,
 				note: 'test note',
 				pulse1: 60,
 				pulse2: 58,
+				timezone: 'UTC',
 			},
 		]
 
@@ -323,8 +358,51 @@ describe('convertSessionsToCSV', () => {
 
 		expect(lines[0]).toBe(EXPECTED_CSV_HEADERS.join(','))
 		expect(lines[1]).toContain('2026-01-08T18:16:19.548Z')
+		expect(lines[1]).toContain('2026-01-08')
+		expect(lines[1]).toContain('18:16')
+		expect(lines[1]).toContain('UTC')
 		expect(lines[1]).toContain('classical')
 		expect(lines[1]).toContain('test note')
+	})
+
+	it('exports columns in correct order', () => {
+		const sessions: BreathingSession[] = [
+			{
+				controlPause1: 20,
+				controlPause2: 25,
+				date: new Date('2026-01-08T18:16:19.548Z'),
+				exerciseType: 'classical',
+				id: '123',
+				localDate: '2026-01-08',
+				localTime: '18:16',
+				maxPause1: 30,
+				maxPause2: 35,
+				maxPause3: 40,
+				note: 'test note',
+				pulse1: 60,
+				pulse2: 58,
+				timezone: 'Pacific/Auckland',
+			},
+		]
+
+		const csv = convertSessionsToCSV(sessions)
+		const lines = csv.split('\n')
+		const values = lines[1].split(',')
+
+		// UTC,LocalDate,LocalTime,Timezone,Exercise Type,Pulse 1,Pulse 2,Control Pause 1,Control Pause 2,Max Pause 1,Max Pause 2,Max Pause 3,Note
+		expect(values[0]).toBe('2026-01-08T18:16:19.548Z')
+		expect(values[1]).toBe('2026-01-08')
+		expect(values[2]).toBe('18:16')
+		expect(values[3]).toBe('Pacific/Auckland')
+		expect(values[4]).toBe('classical')
+		expect(values[5]).toBe('60') // Pulse 1
+		expect(values[6]).toBe('58') // Pulse 2
+		expect(values[7]).toBe('20') // CP1
+		expect(values[8]).toBe('25') // CP2
+		expect(values[9]).toBe('30') // MP1
+		expect(values[10]).toBe('35') // MP2
+		expect(values[11]).toBe('40') // MP3
+		expect(values[12]).toBe('test note')
 	})
 
 	it('escapes values with commas', () => {
@@ -335,12 +413,15 @@ describe('convertSessionsToCSV', () => {
 				date: new Date('2026-01-08T18:16:19.548Z'),
 				exerciseType: 'classical',
 				id: '123',
+				localDate: '2026-01-08',
+				localTime: '18:16',
 				maxPause1: 30,
 				maxPause2: 35,
 				maxPause3: 40,
 				note: 'hello, world',
 				pulse1: 60,
 				pulse2: 58,
+				timezone: 'UTC',
 			},
 		]
 
@@ -365,12 +446,15 @@ describe('convertSessionsToCSV', () => {
 				date: new Date('2026-01-08T18:16:19.548Z'),
 				exerciseType: 'classical',
 				id: '123',
+				localDate: '2026-01-08',
+				localTime: '18:16',
 				maxPause1: 30,
 				maxPause2: 35,
 				maxPause3: 40,
 				note: 'test',
 				pulse1: 60,
 				pulse2: 58,
+				timezone: 'UTC',
 			},
 			{
 				controlPause1: 18,
@@ -378,12 +462,15 @@ describe('convertSessionsToCSV', () => {
 				date: new Date('2026-01-09T07:00:00.000Z'),
 				exerciseType: 'mcp',
 				id: '456',
+				localDate: '2026-01-09',
+				localTime: '07:00',
 				maxPause1: 0,
 				maxPause2: 0,
 				maxPause3: 0,
 				note: '',
 				pulse1: 0,
 				pulse2: 0,
+				timezone: 'UTC',
 			},
 		]
 
@@ -394,6 +481,9 @@ describe('convertSessionsToCSV', () => {
 		expect(result.sessions).toHaveLength(2)
 		expect(result.sessions[0].controlPause1).toBe(20)
 		expect(result.sessions[0].exerciseType).toBe('classical')
+		expect(result.sessions[0].date.toISOString()).toBe(
+			'2026-01-08T18:16:19.548Z',
+		)
 		expect(result.sessions[1].controlPause1).toBe(18)
 		expect(result.sessions[1].exerciseType).toBe('mcp')
 	})

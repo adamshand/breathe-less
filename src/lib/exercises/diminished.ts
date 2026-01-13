@@ -1,4 +1,4 @@
-import type { BreathingSession } from '$lib/breathingStorage'
+import { type BreathingSession, getLocalDateTime } from '$lib/breathingStorage'
 
 import type { ExerciseConfig, Stage } from './types'
 
@@ -118,18 +118,22 @@ export const diminishedLayout: Stage[] = [
 ]
 
 function mapLogToSession(log: number[], date: Date): BreathingSession {
+	const local = getLocalDateTime(date)
 	return {
 		controlPause1: log[1] ?? 0,
 		controlPause2: log[4] ?? 0,
 		date,
 		exerciseType: 'diminished',
 		id: date.getTime().toString(),
+		localDate: local.localDate,
+		localTime: local.localTime,
 		maxPause1: log[2] ?? 0,
 		maxPause2: 0,
 		maxPause3: 0,
 		note: '',
 		pulse1: log[0] ?? 0,
 		pulse2: log[3] ?? 0,
+		timezone: local.timezone,
 	}
 }
 

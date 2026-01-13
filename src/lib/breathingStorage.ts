@@ -1,25 +1,41 @@
 /* eslint-disable perfectionist/sort-modules -- ExerciseType must be defined before BreathingSession uses it */
 export type ExerciseType = 'classical' | 'diminished' | 'mcp'
 
+export interface LocalDateTime {
+	localDate: string // 'YYYY-MM-DD'
+	localTime: string // 'HH:MM'
+	timezone: string // IANA timezone name
+}
+
+export function getLocalDateTime(date: Date = new Date()): LocalDateTime {
+	const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+	const localDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+	const localTime = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+	return { localDate, localTime, timezone }
+}
+
 export interface BreathingSession {
 	controlPause1: number
 	controlPause2: number
 	date: Date
 	exerciseType: ExerciseType
 	id: string // timestamp-based ID
+	localDate: string // 'YYYY-MM-DD' in user's timezone at time of recording
+	localTime: string // 'HH:MM' in user's timezone at time of recording
 	maxPause1: number // light effort (classical only)
 	maxPause2: number // medium effort (classical only)
 	maxPause3: number // maximum effort (classical only)
 	note: string
 	pulse1: number
 	pulse2: number
+	timezone: string // IANA timezone name (e.g., 'Pacific/Auckland')
 }
 
 class BreathingStorage {
 	private db: IDBDatabase | null = null
 	private dbName = 'BreathingApp' // TODO: rename to breatheless
 	private storeName = 'sessions'
-	private version = 4
+	private version = 5
 
 	async getAllSessions(): Promise<BreathingSession[]> {
 		if (!this.db) await this.init()
@@ -98,19 +114,31 @@ class BreathingStorage {
 			// Import each session
 			let completed = 0
 			sessions.forEach((session, index) => {
+				const sessionDate = new Date(session.date)
+				const local = session.localDate
+					? {
+							localDate: session.localDate,
+							localTime: session.localTime,
+							timezone: session.timezone,
+						}
+					: getLocalDateTime(sessionDate)
+
 				// Serialize the session to avoid proxy object issues
 				const serializedSession: BreathingSession = {
 					controlPause1: session.controlPause1,
 					controlPause2: session.controlPause2,
-					date: new Date(session.date), // Ensure it's a proper Date object
+					date: sessionDate,
 					exerciseType: session.exerciseType,
 					id: session.id,
+					localDate: local.localDate,
+					localTime: local.localTime,
 					maxPause1: session.maxPause1,
 					maxPause2: session.maxPause2,
 					maxPause3: session.maxPause3,
 					note: session.note,
 					pulse1: session.pulse1,
 					pulse2: session.pulse2,
+					timezone: local.timezone,
 				}
 
 				const request = store.put(serializedSession)
@@ -179,6 +207,10 @@ class BreathingStorage {
 				if (event.oldVersion < 4) {
 					this.migrateToVersion4Sync(store)
 				}
+
+				if (event.oldVersion < 5) {
+					this.migrateToVersion5Sync(store)
+				}
 			}
 		})
 	}
@@ -197,12 +229,15 @@ class BreathingStorage {
 				date: new Date(session.date), // Ensure it's a proper Date object
 				exerciseType: session.exerciseType,
 				id: session.id,
+				localDate: session.localDate,
+				localTime: session.localTime,
 				maxPause1: session.maxPause1,
 				maxPause2: session.maxPause2,
 				maxPause3: session.maxPause3,
 				note: session.note,
 				pulse1: session.pulse1,
 				pulse2: session.pulse2,
+				timezone: session.timezone,
 			}
 
 			const request = store.put(serializedSession) // Use put() for upsert behavior
@@ -233,18 +268,29 @@ class BreathingStorage {
 				? new Date(oldRecord.date)
 				: new Date()
 
+		const local = oldRecord.localDate
+			? {
+					localDate: oldRecord.localDate,
+					localTime: oldRecord.localTime,
+					timezone: oldRecord.timezone,
+				}
+			: getLocalDateTime(dateToUse)
+
 		const migratedRecord: BreathingSession = {
 			controlPause1: oldRecord.controlPause1 || 0,
 			controlPause2: oldRecord.controlPause2 || 0,
 			date: dateToUse,
 			exerciseType: oldRecord.exerciseType || 'classical',
 			id: oldRecord.id,
+			localDate: local.localDate,
+			localTime: local.localTime,
 			maxPause1: oldRecord.maxPause1 || 0,
 			maxPause2: oldRecord.maxPause2 || 0,
 			maxPause3: oldRecord.maxPause3 || 0,
 			note: oldRecord.note || '',
 			pulse1: oldRecord.pulse1 || 0,
 			pulse2: oldRecord.pulse2 || 0,
+			timezone: local.timezone,
 		}
 
 		return migratedRecord
@@ -327,6 +373,37 @@ class BreathingStorage {
 		}
 	}
 
+	private migrateToVersion5Sync(store: IDBObjectStore): void {
+		const cursorRequest = store.openCursor()
+
+		cursorRequest.onsuccess = (event) => {
+			const cursor = (event.target as IDBRequest).result
+			if (cursor) {
+				const record = cursor.value
+				if (
+					!('localDate' in record) ||
+					!('localTime' in record) ||
+					!('timezone' in record)
+				) {
+					const dateToUse = record.date ? new Date(record.date) : new Date()
+					const local = getLocalDateTime(dateToUse)
+					record.localDate = local.localDate
+					record.localTime = local.localTime
+					record.timezone = local.timezone
+					cursor.update(record)
+				}
+				cursor.continue()
+			}
+		}
+
+		cursorRequest.onerror = () => {
+			console.error(
+				'Failed to migrate records to version 5:',
+				cursorRequest.error,
+			)
+		}
+	}
+
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	private needsMigration(record: any): boolean {
 		return (
@@ -334,7 +411,10 @@ class BreathingStorage {
 			!('pulse1' in record) ||
 			!('pulse2' in record) ||
 			!('note' in record) ||
-			!('exerciseType' in record)
+			!('exerciseType' in record) ||
+			!('localDate' in record) ||
+			!('localTime' in record) ||
+			!('timezone' in record)
 		)
 	}
 }

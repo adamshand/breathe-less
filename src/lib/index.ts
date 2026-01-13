@@ -106,16 +106,19 @@ export function convertSessionsToCSV(sessions: BreathingSession[]): string {
 	sessions.forEach((session) => {
 		const date = new Date(session.date)
 		const row = [
-			escapeCSV(date.toISOString()), // Full ISO datetime: 2025-07-23T14:30:45.123Z
+			escapeCSV(date.toISOString()), // UTC: 2025-07-23T14:30:45.123Z
+			escapeCSV(session.localDate), // LocalDate: 2025-07-23
+			escapeCSV(session.localTime), // LocalTime: 14:30
+			escapeCSV(session.timezone), // Timezone: Pacific/Auckland
 			escapeCSV(session.exerciseType),
+			escapeCSV(session.pulse1),
+			escapeCSV(session.pulse2),
 			escapeCSV(session.controlPause1),
+			escapeCSV(session.controlPause2),
 			escapeCSV(session.maxPause1),
 			escapeCSV(session.maxPause2),
 			escapeCSV(session.maxPause3),
-			escapeCSV(session.controlPause2),
 			escapeCSV(session.note),
-			escapeCSV(session.pulse1),
-			escapeCSV(session.pulse2),
 		]
 		csvLines.push(row.join(','))
 	})
@@ -124,7 +127,11 @@ export function convertSessionsToCSV(sessions: BreathingSession[]): string {
 }
 
 // Re-export BreathingSession from breathingStorage for CSV utilities
-import type { BreathingSession, ExerciseType } from '$lib/breathingStorage'
+import {
+	type BreathingSession,
+	type ExerciseType,
+	getLocalDateTime,
+} from '$lib/breathingStorage'
 export type { BreathingSession, ExerciseType }
 
 export function downloadCSV(csvContent: string, filename: string): void {
@@ -166,16 +173,19 @@ export function stripHtml(str: string) {
 }
 
 export const EXPECTED_CSV_HEADERS = [
-	'DateTime',
+	'UTC',
+	'LocalDate',
+	'LocalTime',
+	'Timezone',
 	'Exercise Type',
+	'Pulse 1',
+	'Pulse 2',
 	'Control Pause 1',
+	'Control Pause 2',
 	'Max Pause 1',
 	'Max Pause 2',
 	'Max Pause 3',
-	'Control Pause 2',
 	'Note',
-	'Pulse 1',
-	'Pulse 2',
 ]
 
 export function generateUniqueId(date: Date): string {
@@ -183,6 +193,68 @@ export function generateUniqueId(date: Date): string {
 	const timestamp = date.getTime()
 	const random = Math.floor(Math.random() * 1000)
 	return `${timestamp}-${random}`
+}
+
+export function localTimeToUTC(
+	localDate: string,
+	localTime: string,
+	timezone?: string,
+): Date {
+	const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+	const localDateTimeStr = `${localDate}T${localTime}:00`
+
+	// Create a date in local time (browser's timezone)
+	const localDateTime = new Date(localDateTimeStr)
+
+	if (tz === Intl.DateTimeFormat().resolvedOptions().timeZone) {
+		// If target timezone matches browser timezone, we're done
+		return localDateTime
+	}
+
+	// For a different timezone, we need to calculate the offset difference
+	// The trick: format the same instant in both timezones and compare
+	const formatter = new Intl.DateTimeFormat('en-US', {
+		day: '2-digit',
+		hour: '2-digit',
+		hour12: false,
+		minute: '2-digit',
+		month: '2-digit',
+		second: '2-digit',
+		timeZone: tz,
+		year: 'numeric',
+	})
+
+	// Get a reference point - use the local datetime as a starting guess
+	// We need to find what UTC time corresponds to localDate+localTime in the target timezone
+	// Iterative approach: adjust until the formatted time in target TZ matches our desired local time
+
+	// Start with the naive interpretation (as if it were browser local time)
+	const utcGuess = localDateTime.getTime()
+
+	// Format this UTC time in the target timezone
+	const formatInTargetTz = (utcMs: number): string => {
+		const parts = formatter.formatToParts(new Date(utcMs))
+		const get = (type: string) =>
+			parts.find((p) => p.type === type)?.value || ''
+		return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}`
+	}
+
+	// What time does our guess show in the target timezone?
+	const formattedInTz = formatInTargetTz(utcGuess)
+
+	// Compare with what we want
+	const targetStr = `${localDate}T${localTime}:00`
+
+	if (formattedInTz === targetStr) {
+		return new Date(utcGuess)
+	}
+
+	// Calculate the difference and adjust
+	const formattedDate = new Date(formattedInTz)
+	const targetDate = new Date(targetStr)
+	const diffMs = targetDate.getTime() - formattedDate.getTime()
+
+	return new Date(utcGuess + diffMs)
 }
 
 export function parseCSV(csvText: string): string[][] {
@@ -234,19 +306,8 @@ export function parseCSVRow(
 	row: string[],
 	rowIndex: number,
 ): { error: null | string; session: BreathingSession | null } {
-	// Detect format based on column count and content:
-	// 11 columns = legacy v1 (Date, Time, ... Personal Best)
-	// 10 columns = legacy v2 OR current format (both have 10 columns)
-	// Disambiguate by checking if column 2 is a valid exercise type
-	const isLegacyV1 = row.length === 11
-	const validExerciseTypes = ['classical', 'diminished', 'mcp']
-	const col1IsExerciseType =
-		row.length >= 2 && validExerciseTypes.includes(row[1].trim().toLowerCase())
-	const isLegacyV2 = row.length === 10 && !col1IsExerciseType
-	const isCurrentFormat =
-		row.length === EXPECTED_CSV_HEADERS.length && col1IsExerciseType
-
-	if (!isLegacyV1 && !isLegacyV2 && !isCurrentFormat) {
+	// New format only: UTC,LocalDate,LocalTime,Timezone,Exercise Type,Pulse 1,Pulse 2,Control Pause 1,Control Pause 2,Max Pause 1,Max Pause 2,Max Pause 3,Note
+	if (row.length !== EXPECTED_CSV_HEADERS.length) {
 		return {
 			error: `Row ${rowIndex + 1}: Expected ${EXPECTED_CSV_HEADERS.length} columns, got ${row.length}`,
 			session: null,
@@ -254,56 +315,40 @@ export function parseCSVRow(
 	}
 
 	try {
+		const utcStr = row[0].trim()
+		const localDateStr = row[1].trim()
+		const localTimeStr = row[2].trim()
+		const timezoneStr = row[3].trim()
+
 		let date: Date
+		let localDate: string
+		let localTime: string
+		let timezone: string
 
-		if (isLegacyV1) {
-			// Legacy v1 format: separate date and time columns
-			const dateStr = row[0].trim()
-			const timeStr = row[1].trim()
-
-			if (dateStr && timeStr) {
-				date = new Date(`${dateStr}T${timeStr}`)
-
-				if (isNaN(date.getTime())) {
-					date = new Date(`${dateStr} ${timeStr}`)
+		if (utcStr) {
+			// UTC is present - use it as canonical, compute local from it
+			date = new Date(utcStr)
+			if (isNaN(date.getTime())) {
+				return {
+					error: `Row ${rowIndex + 1}: Invalid UTC datetime "${utcStr}"`,
+					session: null,
 				}
-
-				if (isNaN(date.getTime())) {
-					date = parseLocaleDateString(dateStr, timeStr)
-				}
-
-				if (isNaN(date.getTime())) {
-					date = new Date(dateStr)
-				}
-
-				if (isNaN(date.getTime())) {
-					console.warn(
-						`Failed to parse legacy date: "${dateStr}" time: "${timeStr}" - using current date`,
-					)
-					date = new Date()
-				}
-			} else {
-				console.warn(
-					`Missing legacy date or time: date="${dateStr}" time="${timeStr}" - using current date`,
-				)
-				date = new Date()
 			}
+			const local = getLocalDateTime(date)
+			localDate = local.localDate
+			localTime = local.localTime
+			timezone = local.timezone
+		} else if (localDateStr && localTimeStr) {
+			// UTC is empty - compute from local date/time + timezone
+			timezone = timezoneStr || Intl.DateTimeFormat().resolvedOptions().timeZone
+			date = localTimeToUTC(localDateStr, localTimeStr, timezone)
+			localDate = localDateStr
+			localTime = localTimeStr
 		} else {
-			// New format or legacy v2: single ISO datetime column
-			const dateTimeStr = row[0].trim()
-
-			if (dateTimeStr) {
-				date = new Date(dateTimeStr)
-
-				if (isNaN(date.getTime())) {
-					console.warn(
-						`Failed to parse ISO datetime: "${dateTimeStr}" - using current date`,
-					)
-					date = new Date()
-				}
-			} else {
-				console.warn(`Missing datetime: "${dateTimeStr}" - using current date`)
-				date = new Date()
+			// Both UTC and local date/time are empty - error
+			return {
+				error: `Row ${rowIndex + 1}: Missing both UTC and LocalDate/LocalTime`,
+				session: null,
 			}
 		}
 
@@ -312,57 +357,24 @@ export function parseCSVRow(
 			return isNaN(num) ? 0 : num
 		}
 
+		const typeStr = row[4].trim().toLowerCase()
 		let exerciseType: ExerciseType = 'classical'
-		let controlPause1: number
-		let maxPause1: number
-		let maxPause2: number
-		let maxPause3: number
-		let controlPause2: number
-		let note: string
-		let pulse1: number
-		let pulse2: number
-
-		if (isLegacyV1) {
-			// Legacy v1: Date, Time, CP1, MP1, MP2, MP3, CP2, Note, PersonalBest, P1, P2
-			controlPause1 = parseNumber(row[2])
-			maxPause1 = parseNumber(row[3])
-			maxPause2 = parseNumber(row[4])
-			maxPause3 = parseNumber(row[5])
-			controlPause2 = parseNumber(row[6])
-			note = row[7].trim()
-			// row[8] was personalBest - ignored
-			pulse1 = parseNumber(row[9])
-			pulse2 = parseNumber(row[10])
-		} else if (isLegacyV2) {
-			// Legacy v2: DateTime, CP1, MP1, MP2, MP3, CP2, Note, PersonalBest, P1, P2
-			controlPause1 = parseNumber(row[1])
-			maxPause1 = parseNumber(row[2])
-			maxPause2 = parseNumber(row[3])
-			maxPause3 = parseNumber(row[4])
-			controlPause2 = parseNumber(row[5])
-			note = row[6].trim()
-			// row[7] was personalBest - ignored
-			pulse1 = parseNumber(row[8])
-			pulse2 = parseNumber(row[9])
-		} else {
-			// Current format: DateTime, ExerciseType, CP1, MP1, MP2, MP3, CP2, Note, P1, P2
-			const typeStr = row[1].trim().toLowerCase()
-			if (
-				typeStr === 'classical' ||
-				typeStr === 'diminished' ||
-				typeStr === 'mcp'
-			) {
-				exerciseType = typeStr
-			}
-			controlPause1 = parseNumber(row[2])
-			maxPause1 = parseNumber(row[3])
-			maxPause2 = parseNumber(row[4])
-			maxPause3 = parseNumber(row[5])
-			controlPause2 = parseNumber(row[6])
-			note = row[7].trim()
-			pulse1 = parseNumber(row[8])
-			pulse2 = parseNumber(row[9])
+		if (
+			typeStr === 'classical' ||
+			typeStr === 'diminished' ||
+			typeStr === 'mcp'
+		) {
+			exerciseType = typeStr
 		}
+
+		const pulse1 = parseNumber(row[5])
+		const pulse2 = parseNumber(row[6])
+		const controlPause1 = parseNumber(row[7])
+		const controlPause2 = parseNumber(row[8])
+		const maxPause1 = parseNumber(row[9])
+		const maxPause2 = parseNumber(row[10])
+		const maxPause3 = parseNumber(row[11])
+		const note = row[12].trim()
 
 		const session: BreathingSession = {
 			controlPause1,
@@ -370,12 +382,15 @@ export function parseCSVRow(
 			date,
 			exerciseType,
 			id: generateUniqueId(date),
+			localDate,
+			localTime,
 			maxPause1,
 			maxPause2,
 			maxPause3,
 			note,
 			pulse1,
 			pulse2,
+			timezone,
 		}
 
 		return { error: null, session }
@@ -452,119 +467,11 @@ export function validateAndParseCSV(csvText: string): CSVValidationResult {
 }
 
 export function validateCSVHeaders(headers: string[]): boolean {
-	// Check for new format first
-	if (headers.length === EXPECTED_CSV_HEADERS.length) {
-		const isNewFormat = headers.every(
-			(header, index) => header.trim() === EXPECTED_CSV_HEADERS[index],
-		)
-		if (isNewFormat) return true
+	if (headers.length !== EXPECTED_CSV_HEADERS.length) {
+		return false
 	}
 
-	// Check for legacy format v1 (Date, Time, ... with Personal Best)
-	if (headers.length === 11) {
-		const legacyHeaders = [
-			'Date',
-			'Time',
-			'Control Pause 1',
-			'Max Pause 1',
-			'Max Pause 2',
-			'Max Pause 3',
-			'Control Pause 2',
-			'Note',
-			'Personal Best MP3',
-			'Pulse 1',
-			'Pulse 2',
-		]
-		const isLegacyFormat = headers.every(
-			(header, index) => header.trim() === legacyHeaders[index],
-		)
-		if (isLegacyFormat) return true
-	}
-
-	// Check for legacy format v2 (DateTime, ... with Personal Best, no Exercise Type)
-	if (headers.length === 10) {
-		const legacyV2Headers = [
-			'DateTime',
-			'Control Pause 1',
-			'Max Pause 1',
-			'Max Pause 2',
-			'Max Pause 3',
-			'Control Pause 2',
-			'Note',
-			'Personal Best MP3',
-			'Pulse 1',
-			'Pulse 2',
-		]
-		const isLegacyV2Format = headers.every(
-			(header, index) => header.trim() === legacyV2Headers[index],
-		)
-		if (isLegacyV2Format) return true
-	}
-
-	return false
-}
-
-function parseLocaleDateString(dateStr: string, timeStr: string): Date {
-	// Try to parse common date formats manually
-
-	// Remove common date separators and try different patterns
-	const cleanDate = dateStr.replace(/[^\d]/g, ' ').trim()
-	const dateParts = cleanDate.split(/\s+/).filter((p) => p.length > 0)
-
-	if (dateParts.length >= 3) {
-		// For DD/MM/YYYY format like "19/07/2025" -> dateParts = ["19", "07", "2025"]
-		// We want: day=19 (index 0), month=07 (index 1), year=2025 (index 2)
-		const patterns = [
-			{ day: 0, month: 1, year: 2 }, // DD/MM/YYYY (New Zealand format)
-			{ day: 1, month: 0, year: 2 }, // MM/DD/YYYY (US format)
-			{ day: 2, month: 1, year: 0 }, // YYYY/MM/DD (ISO format)
-		]
-
-		for (const pattern of patterns) {
-			const day = parseInt(dateParts[pattern.day])
-			const month = parseInt(dateParts[pattern.month])
-			const year = parseInt(dateParts[pattern.year])
-
-			// Validate ranges
-			if (
-				year >= 1900 &&
-				year <= 2100 &&
-				month >= 1 &&
-				month <= 12 &&
-				day >= 1 &&
-				day <= 31
-			) {
-				// Try to parse time
-				let hours = 0,
-					minutes = 0,
-					seconds = 0
-
-				if (timeStr) {
-					const timeMatch = timeStr.match(
-						/(\d{1,2})[^\d](\d{1,2})(?:[^\d](\d{1,2}))?(?:\s*(am|pm))?/i,
-					)
-					if (timeMatch) {
-						hours = parseInt(timeMatch[1])
-						minutes = parseInt(timeMatch[2])
-						seconds = timeMatch[3] ? parseInt(timeMatch[3]) : 0
-
-						// Handle AM/PM
-						if (timeMatch[4]) {
-							const isPM = timeMatch[4].toLowerCase() === 'pm'
-							if (isPM && hours !== 12) hours += 12
-							if (!isPM && hours === 12) hours = 0
-						}
-					}
-				}
-
-				const testDate = new Date(year, month - 1, day, hours, minutes, seconds)
-				if (!isNaN(testDate.getTime())) {
-					return testDate
-				}
-			}
-		}
-	}
-
-	// If all parsing attempts fail, return invalid date
-	return new Date(NaN)
+	return headers.every(
+		(header, index) => header.trim() === EXPECTED_CSV_HEADERS[index],
+	)
 }

@@ -12,8 +12,7 @@
 		const grouped: Record<string, BreathingSession[]> = {}
 
 		for (const session of data) {
-			const dateObj = new Date(session.date)
-			const yyyymmdd = dateObj.toISOString().slice(0, 10)
+			const yyyymmdd = session.localDate
 
 			if (!grouped[yyyymmdd]) {
 				grouped[yyyymmdd] = []
@@ -146,7 +145,10 @@
 
 <section>
 	{#if totalDays < minDays}
-		<p>The chart is not shown until you have practiced for {minDays} days.</p>
+		<p>
+			The chart will display when you have {minDays} practice days in the last 30
+			days.
+		</p>
 	{:else}
 		<Plot
 			height={350}

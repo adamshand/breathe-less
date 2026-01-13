@@ -175,6 +175,16 @@
 			fileInput.value = ''
 		}
 	}
+
+	async function handleReloadApp() {
+		if (!browser) return
+
+		const registration = await navigator.serviceWorker.getRegistration()
+		if (registration) {
+			await registration.update()
+		}
+		window.location.href = '/'
+	}
 </script>
 
 <section>
@@ -320,6 +330,12 @@
 				</button>
 			</div>
 		{/if}
+	</div>
+
+	<div class="app-section">
+		<h2>App</h2>
+		<p>Force check for app updates and reload.</p>
+		<button onclick={handleReloadApp} class="reload-button">Reload App</button>
 	</div>
 </section>
 
@@ -605,6 +621,29 @@
 	}
 
 	.import-another-button:hover {
+		background-color: var(--surface-3);
+	}
+
+	/* App section */
+	.app-section {
+		border-top: 1px solid var(--surface-4);
+		padding-top: var(--size-5);
+		margin-top: var(--size-4);
+	}
+
+	.reload-button {
+		background-color: var(--surface-4);
+		border: none;
+		border-radius: var(--radius-2);
+		color: var(--text-1);
+		font-size: var(--font-size-3);
+		font-weight: var(--font-weight-5);
+		padding: var(--size-3) var(--size-4);
+		cursor: pointer;
+		transition: background-color 0.2s ease;
+	}
+
+	.reload-button:hover {
 		background-color: var(--surface-3);
 	}
 </style>

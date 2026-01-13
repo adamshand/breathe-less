@@ -20,7 +20,7 @@
 		const grouped = new SvelteMap<string, BreathingSession[]>()
 
 		allSessions.forEach((session) => {
-			const dateKey = new Date(session.date).toDateString()
+			const dateKey = session.localDate
 			if (!grouped.has(dateKey)) {
 				grouped.set(dateKey, [])
 			}
@@ -28,13 +28,11 @@
 		})
 
 		grouped.forEach((sessions) => {
-			sessions.sort(
-				(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-			)
+			sessions.sort((a, b) => a.localTime.localeCompare(b.localTime))
 		})
 
 		const sortedEntries = Array.from(grouped.entries()).sort((a, b) => {
-			return new Date(b[0]).getTime() - new Date(a[0]).getTime()
+			return b[0].localeCompare(a[0])
 		})
 
 		return new Map(sortedEntries)

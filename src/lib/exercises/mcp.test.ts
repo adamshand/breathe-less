@@ -75,7 +75,7 @@ describe('mcp exercise config', () => {
 	})
 
 	it('has correct name', () => {
-		expect(mcpExercise.name).toBe('Morning CP')
+		expect(mcpExercise.name).toBe('Morning Control Pause')
 	})
 
 	it('has correct short name', () => {
