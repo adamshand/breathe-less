@@ -69,11 +69,8 @@ const ep: Stage = {
 	autoStart: false,
 	duration: 0,
 	instructions: `
-	<p>Without taking a break, pinch  your nose and hold your breath.</p>
-<p>If your control pause is:</p>
-<p>… above 20s, hold until moderate air hunger.
-<br>… above  15s, hold until the first urge to breathe.
-<br>… below 15s, take a three minute break.</p>
+	<p>Without taking a break, pinch your nose and hold your breath until moderate air hunger.</p>
+<p>If your control pause is below 20s, be gentle.  Hold until light air hunger or take a few minutes break.</p>
 	`,
 	logged: true,
 	name: 'Extended Pause',
