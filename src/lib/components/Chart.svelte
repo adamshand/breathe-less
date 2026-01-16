@@ -2,7 +2,7 @@
 	import { type BreathingSession } from '$lib/breathingStorage'
 	import { median, percentile } from '$lib/stats'
 	import { SvelteDate, SvelteSet } from 'svelte/reactivity'
-	import { AreaY, AxisX, Dot, Line, Plot } from 'svelteplot'
+	import { AreaY, AxisX, AxisY, Dot, Line, Plot } from 'svelteplot'
 
 	let { sessions }: { sessions: BreathingSession[] } = $props()
 
@@ -192,7 +192,7 @@
 		</p>
 	{:else}
 		<Plot
-			height={350}
+			height={300}
 			marginBottom={25}
 			x={{ axis: false }}
 			y={{ grid: true, label: '↑ Seconds' }}
@@ -231,7 +231,7 @@
 					data={rollingMcpData}
 					stroke="var(--text-2)"
 					strokeOpacity={0.5}
-					strokeWidth={1.5}
+					strokeWidth={1}
 					x="date"
 					y="median"
 				/>
@@ -241,27 +241,27 @@
 				tickFormat={formatDateLabel}
 				tickSize={3}
 				stroke="var(--surface-4)"
-				strokeOpacity={0.3}
-				tickFontSize={10}
+				tickFontSize={7}
 				removeDuplicateTicks={true}
 			/>
+			<AxisY tickFontSize={7} />
 		</Plot>
 		<div class="legend">
 			<span class="legend-item">
 				<span class="swatch cp-line"></span>
-				CP trend
+				CP1 Trend
 			</span>
 			<span class="legend-item">
 				<span class="swatch cp-dot"></span>
-				CP daily
+				CP1 Daily Median
 			</span>
 			<span class="legend-item">
 				<span class="swatch cp-ribbon"></span>
-				CP range
+				CP1 Typical Daily Spread
 			</span>
 			<span class="legend-item">
 				<span class="swatch mcp"></span>
-				Morning CP
+				MCP Trend
 			</span>
 		</div>
 	{/if}
@@ -305,7 +305,7 @@
 		display: flex;
 		justify-content: center;
 		gap: var(--size-4);
-		font-size: var(--font-size-0);
+		font-size: var(--font-size-00);
 		color: var(--text-2);
 	}
 	.legend-item {
@@ -316,10 +316,10 @@
 	.swatch {
 		display: inline-block;
 		width: 1rem;
-		height: 3px;
 	}
 	.swatch.cp-line {
 		background: var(--brand);
+		height: 2px;
 	}
 	.swatch.cp-dot {
 		width: 6px;
@@ -337,5 +337,6 @@
 	.swatch.mcp {
 		background: var(--text-2);
 		opacity: 0.5;
+		height: 1px;
 	}
 </style>
