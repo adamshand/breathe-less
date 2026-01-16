@@ -7,7 +7,8 @@
 	let { sessions }: { sessions: BreathingSession[] } = $props()
 
 	const DEFAULT_DAYS = 30
-	const ROLLING_WINDOW_DAYS = 7
+	const ROLLING_WINDOW_7_DAYS = 7
+	const ROLLING_WINDOW_14_DAYS = 14
 	const MIN_DAYS_FOR_ROLLING = 3
 	let showAll = $state(false)
 
@@ -121,7 +122,10 @@
 	const cpData = $derived(plotData.filter((d) => d.series === 'Control Pause'))
 	const mcpData = $derived(plotData.filter((d) => d.series === 'Morning CP'))
 	const rollingCpData = $derived(
-		computeRollingMedian(cpData, ROLLING_WINDOW_DAYS),
+		computeRollingMedian(cpData, ROLLING_WINDOW_14_DAYS),
+	)
+	const rollingMcpData = $derived(
+		computeRollingMedian(mcpData, ROLLING_WINDOW_7_DAYS),
 	)
 	const totalDays = $derived(
 		new Set(plotData.map((d) => d.date.toISOString().slice(0, 10))).size,
@@ -196,8 +200,8 @@
 			<AreaY
 				data={cpData}
 				curve="basis"
-				fill="var(--surface-4)"
-				fillOpacity={0.2}
+				fill="var(--brand)"
+				fillOpacity={0.15}
 				sort="date"
 				x="date"
 				y1="q1"
@@ -205,8 +209,8 @@
 			/>
 			<Dot
 				data={cpData}
-				fill="var(--surface-4)"
-				fillOpacity={0.5}
+				fill="var(--brand)"
+				fillOpacity={0.4}
 				r={3}
 				x="date"
 				y="median"
@@ -215,20 +219,23 @@
 				<Line
 					curve="basis"
 					data={rollingCpData}
-					stroke="var(--surface-4)"
+					stroke="var(--brand)"
 					strokeWidth={2}
 					x="date"
 					y="median"
 				/>
 			{/if}
-			<Line
-				curve="basis"
-				data={mcpData}
-				stroke="var(--brand)"
-				strokeWidth={2}
-				x="date"
-				y="median"
-			/>
+			{#if rollingMcpData.length >= MIN_DAYS_FOR_ROLLING}
+				<Line
+					curve="basis"
+					data={rollingMcpData}
+					stroke="var(--text-2)"
+					strokeOpacity={0.5}
+					strokeWidth={1.5}
+					x="date"
+					y="median"
+				/>
+			{/if}
 			<AxisX
 				ticks={dateMarkers}
 				tickFormat={formatDateLabel}
@@ -241,16 +248,20 @@
 		</Plot>
 		<div class="legend">
 			<span class="legend-item">
-				<span class="swatch mcp"></span>
-				Morning CP
-			</span>
-			<span class="legend-item">
 				<span class="swatch cp-line"></span>
-				CP 7-day trend
+				CP trend
 			</span>
 			<span class="legend-item">
 				<span class="swatch cp-dot"></span>
 				CP daily
+			</span>
+			<span class="legend-item">
+				<span class="swatch cp-ribbon"></span>
+				CP range
+			</span>
+			<span class="legend-item">
+				<span class="swatch mcp"></span>
+				Morning CP
 			</span>
 		</div>
 	{/if}
@@ -307,17 +318,24 @@
 		width: 1rem;
 		height: 3px;
 	}
-	.swatch.mcp {
-		background: var(--brand);
-	}
 	.swatch.cp-line {
-		background: var(--surface-4);
+		background: var(--brand);
 	}
 	.swatch.cp-dot {
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
-		background: var(--surface-4);
+		background: var(--brand);
+		opacity: 0.4;
+	}
+	.swatch.cp-ribbon {
+		height: 8px;
+		background: var(--brand);
+		opacity: 0.15;
+		border-radius: 2px;
+	}
+	.swatch.mcp {
+		background: var(--text-2);
 		opacity: 0.5;
 	}
 </style>
